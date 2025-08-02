@@ -7,25 +7,37 @@ import MatrixBackground from "@/components/ui/effects/MatrixBackground"
 import { FaTrophy, FaMedal, FaAward, FaCrown, FaUser, FaCalendarAlt, FaHashtag } from "react-icons/fa"
 import { motion, AnimatePresence } from "framer-motion"
 
-export default function LeaderboardPage() {
+interface EventLeaderboardPageProps {
+  params: {
+    eventId: string
+  }
+}
+
+export default function EventLeaderboardPage({ params }: EventLeaderboardPageProps) {
+  const { eventId } = params
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // In a real app, you'd fetch event details
+  const [eventName, setEventName] = useState(`Event #${eventId.slice(0, 6)}...`)
 
   useEffect(() => {
+    if (!eventId) return
+
     const fetchLeaderboard = async () => {
       try {
         setLoading(true)
-        const response = await fetch("/api/leaderboard")
+        const response = await fetch(`/api/events/${eventId}/leaderboard`)
         const data: ApiResponse<LeaderboardEntry[]> = await response.json()
 
         if (data.success && data.data) {
           setLeaderboard(data.data)
+          // You might also fetch and set the event name here
         } else {
-          setError(data.error || "Failed to fetch leaderboard")
+          setError(data.error || "Failed to fetch leaderboard for this event")
         }
       } catch (err) {
-        setError("An error occurred while fetching the leaderboard.")
+        setError("An error occurred while fetching the event leaderboard.")
         console.error(err)
       } finally {
         setLoading(false)
@@ -33,7 +45,7 @@ export default function LeaderboardPage() {
     }
 
     fetchLeaderboard()
-  }, [])
+  }, [eventId])
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <FaCrown className="w-5 h-5 text-yellow-400" />
@@ -73,7 +85,7 @@ export default function LeaderboardPage() {
             <div className="absolute inset-0 rounded-full h-20 w-20 border-4 border-transparent border-t-primary animate-pulse"></div>
           </div>
           <div className="text-center">
-            <p className="text-xl mb-2">Accessing Global Rankings...</p>
+            <p className="text-xl mb-2">Loading Event Rankings...</p>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-accent rounded-full animate-bounce"></div>
               <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
@@ -120,14 +132,12 @@ export default function LeaderboardPage() {
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-12 text-center">
             <div className="inline-flex items-center gap-4 mb-6 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
               <FaTrophy className="text-4xl text-yellow-400 animate-pulse" />
-              <h1 className="text-5xl font-bold font-mono text-primary">Global Leaderboard</h1>
+              <h1 className="text-5xl font-bold font-mono text-primary">{eventName} Leaderboard</h1>
               <FaTrophy className="text-4xl text-yellow-400 animate-pulse" />
             </div>
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
-              Elite agents ranked by their prowess in cyber warfare missions.
-              <span className="text-accent font-semibold"> Only the best make it here.</span>
-              <br />
-              <Link href="/leaderboard/clv9u026s000011e8a3305s4p" className="text-sm text-primary/80 hover:text-accent underline">View example event leaderboard</Link>
+              Top agents for this specific event.
+              <Link href="/leaderboard" className="text-accent font-semibold hover:underline"> View Global Leaderboard.</Link>
             </p>
           </motion.div>
 
@@ -273,48 +283,21 @@ export default function LeaderboardPage() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
                 <div className="mb-6">
                   <FaTrophy className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-muted-foreground mb-2">No Rankings Yet</h3>
+                  <h3 className="text-2xl font-bold text-muted-foreground mb-2">No Rankings Yet for this Event</h3>
                   <p className="text-muted-foreground/70 text-lg max-w-md mx-auto">
-                    The battlefield awaits. Participate in missions to claim your position among the elite.
+                    Be the first to make your mark. Participate now!
                   </p>
                 </div>
                 <Link
-                  href="/events"
+                  href={`/events/${eventId}`}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-background font-bold rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 hover:scale-105"
                 >
                   <FaAward className="w-4 h-4" />
-                  Join Mission
+                  Go to Event
                 </Link>
               </motion.div>
             )}
           </motion.div>
-
-          {/* Stats Footer */}
-          {leaderboard.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              <div className="bg-background/40 backdrop-blur-sm rounded-xl p-6 border border-primary/20 text-center">
-                <div className="text-3xl font-bold text-accent mb-2">{leaderboard.length}</div>
-                <div className="text-muted-foreground">Active Agents</div>
-              </div>
-              <div className="bg-background/40 backdrop-blur-sm rounded-xl p-6 border border-primary/20 text-center">
-                <div className="text-3xl font-bold text-accent mb-2">
-                  {leaderboard.reduce((sum, entry) => sum + entry.solveCount, 0)}
-                </div>
-                <div className="text-muted-foreground">Total Solves</div>
-              </div>
-              <div className="bg-background/40 backdrop-blur-sm rounded-xl p-6 border border-primary/20 text-center">
-                <div className="text-3xl font-bold text-accent mb-2">
-                  {leaderboard.reduce((sum, entry) => sum + entry.totalScore, 0).toLocaleString()}
-                </div>
-                <div className="text-muted-foreground">Combined Score</div>
-              </div>
-            </motion.div>
-          )}
         </main>
       </div>
     </div>

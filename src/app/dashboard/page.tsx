@@ -1,5 +1,6 @@
-'use client'
+"use client"
 
+<<<<<<< HEAD
 import { useValidatedSession } from '@/hooks/useValidatedSession'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -7,38 +8,65 @@ import Link from 'next/link'
 import UserNFTCollection from '@/components/UserNFTCollection'
 import MonadNetworkInfo from '@/components/MonadNetworkInfo'
 import { FaTrophy, FaCalendarCheck, FaLaptopCode, FaChartLine } from 'react-icons/fa'
+=======
+import type React from "react"
+
+import { useValidatedSession } from "@/hooks/useValidatedSession"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import {
+  FaTrophy,
+  FaCalendarCheck,
+  FaLaptopCode,
+  FaChartLine,
+  FaRocket,
+  FaFire,
+  FaUsers,
+  FaThLarge,
+  FaArrowRight,
+  FaCrown,
+  FaMedal,
+  FaPlay,
+  FaClock,
+  FaCheckCircle,
+  FaEye,
+  FaTh,
+} from "react-icons/fa"
+import { motion, AnimatePresence } from "framer-motion"
+>>>>>>> 8787f02 (improved ui)
 
 // Import the themed components for a consistent look
-import MatrixBackground from '@/components/ui/effects/MatrixBackground'
-import TerminalPrompt from '@/components/ui/effects/TerminalPrompt'
+import MatrixBackground from "@/components/ui/effects/MatrixBackground"
+import TerminalPrompt from "@/components/ui/effects/TerminalPrompt"
 
 // --- Type definitions ---
 interface AvailableEvent {
-  id: string;
-  title: string;
-  description: string;
-  status: 'UPCOMING' | 'ACTIVE' | 'ENDED';
-  participantCount: number;
+  id: string
+  title: string
+  description: string
+  status: "UPCOMING" | "ACTIVE" | "ENDED"
+  participantCount: number
   _count: {
-    challenges: number;
-  };
+    challenges: number
+  }
 }
 
 interface UserStats {
-  totalScore: number;
-  eventsParticipated: number;
-  challengesSolved: number;
-  rank: number;
+  totalScore: number
+  eventsParticipated: number
+  challengesSolved: number
+  rank: number
 }
 
 interface ParticipatedEvent {
-  id: string;
-  name: string;
-  isActive: boolean;
-  userScore: number;
-  userRank: number;
-  totalChallenges: number;
-  solvedChallenges: number;
+  id: string
+  name: string
+  isActive: boolean
+  userScore: number
+  userRank: number
+  totalChallenges: number
+  solvedChallenges: number
 }
 
 export default function Dashboard() {
@@ -50,51 +78,63 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === 'loading') return
-
+    if (status === "loading") return
     if (!session) {
-      router.push('/auth/signin')
+      router.push("/auth/signin")
       return
     }
 
     const fetchData = async () => {
       try {
         const [availableRes, participatedRes, statsRes] = await Promise.all([
-          fetch('/api/events'), // Fetches available (active/upcoming, un-joined) events
-          fetch('/api/events/my-events'), // Fetches participated events
-          fetch('/api/user/stats')
-        ]);
+          fetch("/api/events"), // Fetches available (active/upcoming, un-joined) events
+          fetch("/api/events/my-events"), // Fetches participated events
+          fetch("/api/user/stats"),
+        ])
 
-        const availableData = await availableRes.json();
-        setAvailableEvents(availableData.events || []);
+        const availableData = await availableRes.json()
+        setAvailableEvents(availableData.events || [])
 
-        const participatedData = await participatedRes.json();
-        setParticipatedEvents(participatedData.events || []);
+        const participatedData = await participatedRes.json()
+        setParticipatedEvents(participatedData.events || [])
 
-        const statsData = await statsRes.json();
-        setUserStats(statsData.stats || null);
-
+        const statsData = await statsRes.json()
+        setUserStats(statsData.stats || null)
       } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-        setAvailableEvents([]);
-        setParticipatedEvents([]);
-        setUserStats(null);
+        console.error("Error fetching dashboard data:", error)
+        setAvailableEvents([])
+        setParticipatedEvents([])
+        setUserStats(null)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
     fetchData()
   }, [session, status, router])
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="relative min-h-screen bg-background flex items-center justify-center">
         <MatrixBackground />
-        <div className="relative z-10 flex flex-col items-center gap-4 text-primary font-mono">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-accent"></div>
-          <p>Initializing Dashboard...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 flex flex-col items-center gap-6 text-primary font-mono"
+        >
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-primary/20 border-t-accent"></div>
+            <div className="absolute inset-0 rounded-full h-20 w-20 border-4 border-transparent border-t-primary animate-pulse"></div>
+          </div>
+          <div className="text-center">
+            <p className="text-xl mb-2">Initializing Command Center...</p>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-accent rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+              <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     )
   }
@@ -103,26 +143,43 @@ export default function Dashboard() {
     return null
   }
 
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <FaCrown className="w-5 h-5 text-yellow-400" />
+    if (rank <= 3) return <FaMedal className="w-5 h-5 text-accent" />
+    if (rank <= 10) return <FaTrophy className="w-5 h-5 text-primary" />
+    return null
+  }
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <MatrixBackground />
       <TerminalPrompt />
-
       <div className="relative z-10">
-        <nav className="bg-background/80 backdrop-blur-sm border-b border-primary/20 sticky top-0 z-50">
+        {/* Navigation */}
+        <nav className="bg-background/90 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50 shadow-lg shadow-primary/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <Link href="/" className="text-2xl font-bold font-mono text-primary hover:text-primary-focus transition-colors">
-                CTF<span className='text-accent'>NFT</span>
+              <Link
+                href="/"
+                className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
+              >
+                CTF<span className="text-accent">NFT</span>
               </Link>
-              <div className="flex items-center space-x-2 md:space-x-4">
-                <Link href="/events" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                  Events
-                </Link>
-                <Link href="/leaderboard" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                  Leaderboard
-                </Link>
-                <Link href="/api/auth/signout" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <div className="flex items-center space-x-1 md:space-x-2">
+                {["Events", "Leaderboard"].map((item) => (
+                  <Link
+                    key={item}
+                    href={`/${item.toLowerCase()}`}
+                    className="text-muted-foreground hover:text-primary px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-primary/10 relative group"
+                  >
+                    {item}
+                    <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
+                  </Link>
+                ))}
+                <Link
+                  href="/api/auth/signout"
+                  className="text-muted-foreground hover:text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10"
+                >
                   Sign Out
                 </Link>
               </div>
@@ -130,14 +187,29 @@ export default function Dashboard() {
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-background/50 backdrop-blur-sm rounded-xl p-8 border border-primary/20 mb-8">
-            <h1 className="text-3xl font-bold font-mono text-primary mb-2">
-              Welcome back, {session.user.username}!
-            </h1>
-            <p className="text-muted-foreground">Ready to capture some flags? Here's your status report.</p>
-          </div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Welcome Section */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-md rounded-2xl p-8 border border-primary/20 mb-12 shadow-xl shadow-primary/5"
+          >
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-primary/30">
+                <FaRocket className="w-8 h-8 text-accent" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold font-mono text-primary mb-2">
+                  Welcome back, <span className="text-accent">{session.user.username}</span>!
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Your command center is ready. Time to dominate the cyber battlefield.
+                </p>
+              </div>
+            </div>
+          </motion.div>
 
+<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard icon={<FaTrophy />} title="Total Score" value={userStats?.totalScore || 0} color="text-primary" />
             <StatCard icon={<FaCalendarCheck />} title="Events Joined" value={participatedEvents.length} color="text-accent" />
@@ -155,104 +227,340 @@ export default function Dashboard() {
           <MonadNetworkInfo />
         </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-background/50 backdrop-blur-sm rounded-xl p-6 md:p-8 border border-primary/20">
-              <h2 className="text-2xl font-bold font-mono text-primary mb-6">My Missions</h2>
-              <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
-                {participatedEvents.length > 0 ? participatedEvents.map(event => (
-                  <EventCard key={event.id} event={event} type="participated" />
-                )) : <EmptyState message="No missions joined yet." action={{ href: "/events", text: "Browse Missions" }} />}
-              </div>
-            </div>
+=======
+          {/* Stats Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          >
+            <StatCard
+              icon={<FaTrophy />}
+              title="Total Score"
+              value={userStats?.totalScore?.toLocaleString() || "0"}
+              color="text-primary"
+              bgColor="from-primary/20 to-primary/10 border-primary/30"
+              delay={0}
+            />
+            <StatCard
+              icon={<FaCalendarCheck />}
+              title="Events Joined"
+              value={participatedEvents.length}
+              color="text-accent"
+              bgColor="from-accent/20 to-accent/10 border-accent/30"
+              delay={0.05}
+            />
+            <StatCard
+              icon={<FaLaptopCode />}
+              title="Challenges Solved"
+              value={userStats?.challengesSolved || 0}
+              color="text-green-400"
+              bgColor="from-green-500/20 to-green-600/10 border-green-500/30"
+              delay={0.1}
+            />
+            <StatCard
+              icon={<FaChartLine />}
+              title="Global Rank"
+              value={userStats?.rank ? `#${userStats.rank}` : "N/A"}
+              color="text-yellow-400"
+              bgColor="from-yellow-500/20 to-yellow-600/10 border-yellow-500/30"
+              delay={0.15}
+              rankIcon={userStats?.rank ? getRankIcon(userStats.rank) : null}
+            />
+          </motion.div>
 
-            <div className="bg-background/50 backdrop-blur-sm rounded-xl p-6 md:p-8 border border-primary/20">
-              <h2 className="text-2xl font-bold font-mono text-primary mb-6">Available Missions</h2>
-              <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
-                {availableEvents.length > 0 ? availableEvents.slice(0, 6).map(event => (
-                   <EventCard key={event.id} event={event} type="available" />
-                )) : <EmptyState message="No new missions currently available." />}
+          {/* Main Content Grid */}
+>>>>>>> 8787f02 (improved ui)
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* My Missions */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-background/60 backdrop-blur-md rounded-2xl p-8 border border-primary/20 shadow-xl shadow-primary/5"
+            >
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 rounded-lg bg-accent/20">
+                  <FaFire className="w-6 h-6 text-accent" />
+                </div>
+                <h2 className="text-2xl font-bold font-mono text-primary">My Active Missions</h2>
               </div>
-            </div>
+              <div className="space-y-4 max-h-[32rem] overflow-y-auto pr-2 custom-scrollbar">
+                <AnimatePresence>
+                  {participatedEvents.length > 0 ? (
+                    participatedEvents.map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <EventCard event={event} type="participated" />
+                      </motion.div>
+                    ))
+                  ) : (
+                    <EmptyState
+                      icon={<FaRocket className="w-12 h-12" />}
+                      message="No active missions yet."
+                      description="Join your first mission to start earning points and climbing the ranks."
+                      action={{ href: "/events", text: "Browse Missions" }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Available Missions */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 }}
+              className="bg-background/60 backdrop-blur-md rounded-2xl p-8 border border-primary/20 shadow-xl shadow-primary/5"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <FaThLarge className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold font-mono text-primary">Available Missions</h2>
+                </div>
+                <Link
+                  href="/events"
+                  className="text-accent hover:text-accent/80 text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all duration-200"
+                >
+                  View All <FaArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="space-y-4 max-h-[32rem] overflow-y-auto pr-2 custom-scrollbar">
+                <AnimatePresence>
+                  {availableEvents.length > 0 ? (
+                    availableEvents.slice(0, 6).map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <EventCard event={event} type="available" />
+                      </motion.div>
+                    ))
+                  ) : (
+                    <EmptyState
+                      icon={<FaEye className="w-12 h-12" />}
+                      message="No new missions available."
+                      description="Check back later for new cyber warfare operations."
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           </div>
         </main>
       </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(var(--primary), 0.1);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(var(--accent), 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(var(--accent), 0.7);
+        }
+      `}</style>
     </div>
   )
 }
 
-// --- Reusable Thematic Components ---
-
-const StatCard = ({ icon, title, value, color }: { icon: React.ReactNode, title: string, value: string | number, color: string }) => (
-  <div className="bg-background/70 backdrop-blur-sm rounded-xl p-6 border border-primary/10 flex items-center gap-4">
-    <div className="p-3 bg-primary/10 rounded-lg text-primary text-2xl">{icon}</div>
-    <div>
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className={`text-2xl font-bold font-mono ${color}`}>{value}</p>
+// --- Enhanced Reusable Components ---
+const StatCard = ({
+  icon,
+  title,
+  value,
+  color,
+  bgColor,
+  delay,
+  rankIcon,
+}: {
+  icon: React.ReactNode
+  title: string
+  value: string | number
+  color: string
+  bgColor: string
+  delay: number
+  rankIcon?: React.ReactNode
+}) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay }}
+    className={`bg-gradient-to-br ${bgColor} backdrop-blur-sm rounded-xl p-6 border hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-105`}
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-background/20 rounded-lg text-2xl">{icon}</div>
+      {rankIcon && <div className="animate-pulse">{rankIcon}</div>}
     </div>
-  </div>
-);
+    <div>
+      <p className="text-sm text-muted-foreground font-medium mb-1">{title}</p>
+      <p className={`text-3xl font-bold font-mono ${color}`}>{value}</p>
+    </div>
+  </motion.div>
+)
 
-const EventCard = ({ event, type }: { event: any, type: 'participated' | 'available' }) => {
-  const statusConfig: Record<'ACTIVE' | 'UPCOMING' | 'ENDED', string> = {
-    ACTIVE: 'bg-green-500/20 text-green-300 border-green-500/50',
-    UPCOMING: 'bg-blue-500/20 text-blue-300 border-blue-500/50',
-    ENDED: 'bg-gray-500/20 text-gray-300 border-gray-500/50'
-  };
-  const statusKey = (event.status ?? (event.isActive ? 'ACTIVE' : 'ENDED')) as keyof typeof statusConfig;
+const EventCard = ({ event, type }: { event: any; type: "participated" | "available" }) => {
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      ACTIVE: {
+        colors: "bg-gradient-to-r from-green-500/20 to-green-600/20 text-green-300 border-green-500/50",
+        icon: <FaPlay className="w-3 h-3" />,
+        pulse: true,
+      },
+      UPCOMING: {
+        colors: "bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 border-blue-500/50",
+        icon: <FaClock className="w-3 h-3" />,
+        pulse: false,
+      },
+      ENDED: {
+        colors: "bg-gradient-to-r from-gray-500/20 to-gray-600/20 text-gray-300 border-gray-500/50",
+        icon: <FaCheckCircle className="w-3 h-3" />,
+        pulse: false,
+      },
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ENDED
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${config.colors} ${
+          config.pulse ? "animate-pulse" : ""
+        }`}
+      >
+        {config.icon}
+        {status}
+      </span>
+    )
+  }
+
+  const statusKey = (event.status ?? (event.isActive ? "ACTIVE" : "ENDED")) as string
 
   // --- Card for "My Missions" (Participated Events) ---
-  if (type === 'participated') {
+  if (type === "participated") {
+    const progress = event.totalChallenges > 0 ? (event.solvedChallenges / event.totalChallenges) * 100 : 0
+
     return (
-      <div className="bg-background/70 rounded-lg p-4 border border-primary/10 hover:border-accent transition-colors group">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-semibold text-foreground group-hover:text-accent transition-colors">{event.name}</h3>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[statusKey]}`}>{statusKey}</span>
+      <div className="bg-background/80 backdrop-blur-sm rounded-xl p-6 border border-primary/10 hover:border-accent/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/5">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-lg font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">
+            {event.name}
+          </h3>
+          {getStatusBadge(statusKey)}
         </div>
-        <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-          <div><p className="text-muted-foreground">Score</p><p className="font-bold text-primary">{event.userScore} pts</p></div>
-          <div><p className="text-muted-foreground">Rank</p><p className="font-bold text-accent">#{event.userRank || 'N/A'}</p></div>
-          <div><p className="text-muted-foreground">Progress</p><p className="font-bold text-green-400">{event.solvedChallenges}/{event.totalChallenges}</p></div>
-          <div className="flex justify-end items-end">
-            {(event.isActive || statusKey === 'ACTIVE') && <Link href={`/events/${event.id}`} className="text-accent hover:underline font-semibold">Continue →</Link>}
+
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-muted-foreground mb-2">
+            <span>Progress</span>
+            <span>
+              {event.solvedChallenges}/{event.totalChallenges} challenges
+            </span>
+          </div>
+          <div className="w-full bg-primary/10 rounded-full h-2">
+            <div
+              className="bg-gradient-to-r from-accent to-accent/80 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="text-center">
+            <p className="text-muted-foreground text-xs">Score</p>
+            <p className="font-bold text-primary text-lg">{event.userScore}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-muted-foreground text-xs">Rank</p>
+            <p className="font-bold text-accent text-lg">#{event.userRank || "N/A"}</p>
+          </div>
+          <div className="text-center">
+            {(event.isActive || statusKey === "ACTIVE") && (
+              <Link
+                href={`/events/${event.id}`}
+                className="inline-flex items-center gap-1 text-accent hover:text-accent/80 font-bold text-sm hover:gap-2 transition-all duration-200"
+              >
+                Continue <FaArrowRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // --- Card for "Available Missions" ---
-  if (type === 'available') {
+  if (type === "available") {
     return (
       <Link href={`/events/${event.id}`} className="block group">
-        <div className="bg-background/70 rounded-lg p-4 border border-primary/10 group-hover:border-accent transition-colors h-full flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold text-foreground group-hover:text-accent transition-colors">{event.title}</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[statusKey]}`}>{statusKey}</span>
-            </div>
-            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
+        <div className="bg-background/80 backdrop-blur-sm rounded-xl p-6 border border-primary/10 group-hover:border-accent/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:scale-[1.02]">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-lg font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">
+              {event.title}
+            </h3>
+            {getStatusBadge(statusKey)}
           </div>
-          <div className="text-sm text-muted-foreground mt-2">
-            <span>👥 {event.participantCount} agents</span>
-            <span className="mx-2">|</span>
-            <span>🎯 {event._count.challenges} targets</span>
+          <p className="text-muted-foreground text-sm mb-4 line-clamp-2 leading-relaxed">{event.description}</p>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <FaUsers className="w-4 h-4 text-accent" />
+                <span className="text-accent font-bold">{event.participantCount}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <FaThLarge className="w-4 h-4 text-accent" />
+                <span className="text-accent font-bold">{event._count.challenges}</span>
+              </div>
+            </div>
+            <FaArrowRight className="w-4 h-4 text-accent group-hover:translate-x-1 transition-transform duration-200" />
           </div>
         </div>
       </Link>
-    );
+    )
   }
 
-  return null; // Should not happen
-};
+  return null
+}
 
-
-const EmptyState = ({ message, action }: { message: string, action?: { href: string, text: string }}) => (
-  <div className="text-center py-12">
-    <p className="text-muted-foreground text-lg mb-4">{message}</p>
+const EmptyState = ({
+  icon,
+  message,
+  description,
+  action,
+}: {
+  icon: React.ReactNode
+  message: string
+  description?: string
+  action?: { href: string; text: string }
+}) => (
+  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
+    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center border border-primary/20">
+      <div className="text-muted-foreground/50">{icon}</div>
+    </div>
+    <h3 className="text-xl font-bold text-foreground mb-2">{message}</h3>
+    {description && <p className="text-muted-foreground mb-6 max-w-sm mx-auto">{description}</p>}
     {action && (
-      <Link href={action.href} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-transform transform hover:scale-105 inline-block">
+      <Link
+        href={action.href}
+        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-background font-bold rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 hover:scale-105"
+      >
+        <FaRocket className="w-4 h-4" />
         {action.text}
       </Link>
     )}
-  </div>
-);
+  </motion.div>
+)
