@@ -120,7 +120,7 @@ const CTNFTLanding = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link href="/" className="text-2xl font-bold font-mono text-primary hover:text-primary-focus transition-colors">
-                CTF<span className='text-accent'>NFT</span>
+                CT<span className='text-accent'>NFT</span>
               </Link>
               <div className="flex items-center space-x-4">
                 {session ? (
@@ -256,7 +256,7 @@ const CTNFTLanding = () => {
           <footer className="bg-background/80 backdrop-blur-sm border-t border-primary/10 mt-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center text-muted-foreground">
-                <p>© {new Date().getFullYear()} CTFNFT. All rights reserved.</p>
+                <p>© {new Date().getFullYear()} CTNFT. All rights reserved.</p>
               </div>
             </div>
           </footer>
