@@ -40,6 +40,7 @@ export default function ChallengesParticipantPage() {
   const [flagInputs, setFlagInputs] = useState<Record<string, string>>({});
   const [submittingFlag, setSubmittingFlag] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -47,10 +48,18 @@ export default function ChallengesParticipantPage() {
     async function fetchEvent() {
       try {
         const resolvedParams = await params;
-        const response = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`);
+        const response = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        });
         if (response.ok) {
           const eventData = await response.json();
+          console.log('Event data fetched:', eventData);
           setEvent(eventData);
+        } else {
+          console.error('Failed to fetch event:', response.status);
         }
       } catch (error) {
         console.error('Error fetching event:', error);
@@ -61,6 +70,30 @@ export default function ChallengesParticipantPage() {
 
     fetchEvent();
   }, [params, status]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const resolvedParams = await params;
+      const response = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
+      if (response.ok) {
+        const eventData = await response.json();
+        console.log('Data manually refreshed:', eventData);
+        setEvent(eventData);
+        setMessage({ type: 'success', text: 'Data refreshed successfully!' });
+      }
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      setMessage({ type: 'error', text: 'Failed to refresh data' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleFlagSubmit = async (challengeId: string) => {
     const flag = flagInputs[challengeId]?.trim();
@@ -92,10 +125,20 @@ export default function ChallengesParticipantPage() {
         setFlagInputs(prev => ({ ...prev, [challengeId]: '' }));
         
         // Refresh the event data to update solved status
-        const refreshResponse = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`);
+        console.log('Flag submitted successfully, refreshing data...');
+        const resolvedParams = await params;
+        const refreshResponse = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        });
         if (refreshResponse.ok) {
           const refreshedEvent = await refreshResponse.json();
+          console.log('Data refreshed:', refreshedEvent);
           setEvent(refreshedEvent);
+        } else {
+          console.error('Failed to refresh data:', refreshResponse.status);
         }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit flag' });
@@ -184,6 +227,13 @@ export default function ChallengesParticipantPage() {
                 <span className="text-gray-400 text-sm">
                   {event.challenges.length} Challenges
                 </span>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors"
+                >
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
               </div>
             </div>
             <Link

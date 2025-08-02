@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { revalidateTag } from 'next/cache';
 
 export async function POST(
   request: NextRequest,
@@ -107,6 +108,14 @@ export async function POST(
       },
     });
 
+    console.log(`[DEBUG] Created solve record:`, {
+      id: solve.id,
+      userId: solve.userId,
+      challengeId: solve.challengeId,
+      pointsAwarded: solve.pointsAwarded,
+      solvedAt: solve.solvedAt
+    });
+
     // Update user's total score
     await prisma.user.update({
       where: { id: user.id },
@@ -136,6 +145,12 @@ export async function POST(
       message: 'Correct flag! Challenge solved!',
       pointsAwarded,
       solve,
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
   } catch (error) {
     console.error('Error submitting flag:', error);

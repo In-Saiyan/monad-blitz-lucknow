@@ -15,6 +15,7 @@ interface Challenge {
   initialPoints: number;
   difficulty: string;
   solved: boolean;
+  pointsAwarded?: number;
   fileUrl?: string;
 }
 
@@ -45,6 +46,7 @@ export default function EventPage() {
   const [hasJoined, setHasJoined] = useState(false);
   const [startingEvent, setStartingEvent] = useState(false);
   const [endingEvent, setEndingEvent] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const eventId = params?.id as string;
 
@@ -63,7 +65,12 @@ export default function EventPage() {
 
   const fetchEvent = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}`);
+      const response = await fetch(`/api/events/${eventId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
       if (!response.ok) {
         if (response.status === 404) {
           setError('Event not found');
@@ -73,6 +80,7 @@ export default function EventPage() {
         return;
       }
       const data = await response.json();
+      console.log('Event data fetched:', data);
       setEvent(data);
     } catch (err) {
       console.error('Error fetching event:', err);
@@ -163,6 +171,27 @@ export default function EventPage() {
       alert('Failed to end event');
     } finally {
       setEndingEvent(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Event data manually refreshed:', data);
+        setEvent(data);
+      }
+    } catch (err) {
+      console.error('Error refreshing event:', err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -383,6 +412,13 @@ export default function EventPage() {
                       {event.challenges.filter(c => c.solved).length} solved
                     </span>
                   )}
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors"
+                  >
+                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                  </button>
                 </div>
               </div>
               
@@ -415,7 +451,7 @@ export default function EventPage() {
                             <h3 className="text-lg font-semibold text-white">{challenge.title}</h3>
                             {challenge.solved && (
                               <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded-full text-xs font-medium border border-green-500/50">
-                                ✅ Solved
+                                ✅ Solved {challenge.pointsAwarded && `(+${challenge.pointsAwarded} pts)`}
                               </span>
                             )}
                           </div>

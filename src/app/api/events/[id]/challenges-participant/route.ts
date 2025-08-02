@@ -70,14 +70,20 @@ export async function GET(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
+    console.log(`[DEBUG] User ${user.id} fetching challenges for event ${eventId}`);
+    console.log(`[DEBUG] Found ${event.challenges.length} challenges`);
+    event.challenges.forEach(challenge => {
+      console.log(`[DEBUG] Challenge ${challenge.id}: ${challenge.solves.length} solves by user`);
+    });
+
     // Transform the data to include only information participants should see
     const transformedEvent = {
       id: event.id,
-      title: event.title,
+      title: event.name, // Using 'name' field from CTFEvent model
       description: event.description,
       startTime: event.startTime,
       endTime: event.endTime,
-      status: event.status,
+      status: event.isActive ? 'active' : 'inactive', // Derive status from isActive
       challenges: event.challenges.map((challenge: any) => ({
         id: challenge.id,
         title: challenge.title,
@@ -91,7 +97,13 @@ export async function GET(
       })),
     };
 
-    return NextResponse.json(transformedEvent);
+    return NextResponse.json(transformedEvent, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Error fetching event challenges for participant:', error);
     return NextResponse.json(

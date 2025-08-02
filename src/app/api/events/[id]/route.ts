@@ -8,7 +8,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
     const { id } = await params;
+    
+    // Find the user if session exists
+    let user = null;
+    if (session?.user?.email) {
+      user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+      });
+    }
+
     const event = await prisma.cTFEvent.findUnique({
       where: { id },
       include: {
@@ -18,7 +28,19 @@ export async function GET(
             email: true,
           },
         },
-        challenges: true,
+        challenges: {
+          include: {
+            solves: user ? {
+              where: {
+                userId: user.id,
+              },
+              select: {
+                id: true,
+                pointsAwarded: true,
+              },
+            } : false,
+          },
+        },
         participants: {
           include: {
             user: {
@@ -53,13 +75,33 @@ export async function GET(
       status = 'ENDED';
     }
 
+    // Transform challenges to include solved status
+    const transformedChallenges = event.challenges.map((challenge: any) => ({
+      id: challenge.id,
+      title: challenge.title,
+      description: challenge.description,
+      category: challenge.category,
+      initialPoints: challenge.initialPoints,
+      difficulty: challenge.difficulty,
+      fileUrl: challenge.fileUrl,
+      solved: user && challenge.solves ? challenge.solves.length > 0 : false,
+      pointsAwarded: user && challenge.solves && challenge.solves.length > 0 ? challenge.solves[0].pointsAwarded : undefined,
+    }));
+
     const eventData = {
       ...event,
       status,
       participantCount,
+      challenges: transformedChallenges,
     };
 
-    return NextResponse.json(eventData);
+    return NextResponse.json(eventData, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Error fetching event:', error);
     return NextResponse.json(
