@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String   @unique
+  password      String
+  walletAddress String?  @unique
+  role          UserRole @default(USER)
+  totalScore    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  organizedEvents   CTFEvent[]         @relation("EventOrganizer")
+  participations    EventParticipant[]
+  solves            Solve[]
+  accounts          Account[]
+  sessions          Session[]
+  organizerRequests OrganizerRequest[]
+  reviewedRequests  OrganizerRequest[] @relation("ReviewedRequests")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model CTFEvent {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String
+  startTime             DateTime
+  endTime               DateTime
+  isActive              Boolean  @default(true)
+  maxParticipants       Int?     @default(10000) // Platform default of 10K
+  joinDeadlineMinutes   Int?     @default(10)    // Default 10 minutes after start
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  organizer     User               @relation("EventOrganizer", fields: [organizerId], references: [id])
+  organizerId   String
+  participants  EventParticipant[]
+  challenges    Challenge[]
+
+  @@map("ctf_events")
+}
+
+model Challenge {
+  id           String @id @default(cuid())
+  title        String
+  description  String
+  category     String
+  difficulty   String
+  flag         String
+  initialPoints Int
+  minPoints    Int
+  decayFactor  Int
+  fileUrl      String?
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  event   CTFEvent @relation(fields: [eventId], references: [id])
+  eventId String
+  solves  Solve[]
+
+  @@map("challenges")
+}
+
+model Solve {
+  id            String   @id @default(cuid())
+  userId        String
+  challengeId   String
+  pointsAwarded Int
+  solvedAt      DateTime @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId]) // Prevent duplicate solves
+  @@map("solves")
+}
+
+model EventParticipant {
+  id             String   @id @default(cuid())
+  userId         String
+  eventId        String
+  totalScore     Int      @default(0)
+  rank           Int?
+  hasReceivedNFT Boolean  @default(false)
+  nftTokenId     String?
+  joinedAt       DateTime @default(now())
+
+  // Relations
+  user  User     @relation(fields: [userId], references: [id])
+  event CTFEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId]) // One participation per user per event
+  @@map("event_participants")
+}
+
+model OrganizerRequest {
+  id          String               @id @default(cuid())
+  userId      String
+  subject     String
+  body        String
+  status      OrganizerRequestStatus @default(PENDING)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  reviewedAt  DateTime?
+  reviewedBy  String?
+
+  // Relations
+  user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("ReviewedRequests", fields: [reviewedBy], references: [id])
+
+  @@map("organizer_requests")
+}
+
+enum UserRole {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum OrganizerRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
