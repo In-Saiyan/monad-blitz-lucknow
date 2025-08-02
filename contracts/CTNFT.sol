@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract CTNFT is ERC721, ERC721URIStorage, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
 
     struct EventNFT {
         string eventId;
@@ -29,7 +27,7 @@ contract CTNFT is ERC721, ERC721URIStorage, Ownable {
         string tier
     );
 
-    constructor() ERC721("Capture The NFT", "CTNFT") {}
+    constructor() ERC721("Capture The NFT", "CTNFT") Ownable(msg.sender) {}
 
     function addValidEvent(string memory eventId) external onlyOwner {
         validEvents[eventId] = true;
@@ -41,16 +39,16 @@ contract CTNFT is ERC721, ERC721URIStorage, Ownable {
         uint256 rank,
         uint256 score,
         string memory tier,
-        string memory tokenURI
-    ) external onlyOwner returns (uint256) {
+        string memory uri
+    ) public onlyOwner returns (uint256) {
         require(validEvents[eventId], "Invalid event ID");
         require(bytes(tier).length > 0, "Tier cannot be empty");
 
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter;
+        _tokenIdCounter++;
 
         _mint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
+        _setTokenURI(tokenId, uri);
 
         eventNFTs[tokenId] = EventNFT({
             eventId: eventId,
@@ -90,8 +88,8 @@ contract CTNFT is ERC721, ERC721URIStorage, Ownable {
         uint256[] memory userTokens = new uint256[](balance);
         uint256 currentIndex = 0;
 
-        for (uint256 i = 0; i < _tokenIdCounter.current(); i++) {
-            if (_exists(i) && ownerOf(i) == user) {
+        for (uint256 i = 0; i < _tokenIdCounter; i++) {
+            if (_ownerOf(i) == user) {
                 userTokens[currentIndex] = i;
                 currentIndex++;
             }
@@ -101,13 +99,8 @@ contract CTNFT is ERC721, ERC721URIStorage, Ownable {
     }
 
     function getEventNFT(uint256 tokenId) external view returns (EventNFT memory) {
-        require(_exists(tokenId), "Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
         return eventNFTs[tokenId];
-    }
-
-    // Override required functions
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
     }
 
     function tokenURI(uint256 tokenId)

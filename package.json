@@ -14,7 +14,15 @@
     "db:reset": "npx prisma migrate reset --force",
     "setup": "npm install && npx prisma generate && npx prisma db push",
     "setup:clean": "npm run clean:all && npm install && npx prisma generate && npx prisma db push",
-    "setup:db": "npm run clean:all && npm install && npx prisma generate && npx prisma migrate reset --force"
+    "setup:db": "npm run clean:all && npm install && npx prisma generate && npx prisma migrate reset --force",
+    "compile": "hardhat compile",
+    "node:start": "hardhat node",
+    "node:background": "hardhat node &",
+    "deploy:localhost": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:monad": "hardhat run scripts/deploy.ts --network monadTestnet",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "test:contracts": "hardhat test",
+    "test:deployed": "hardhat run scripts/test-contracts.ts --network localhost"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
