@@ -1,113 +1,88 @@
+// Path: app/api/events/my-events/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponse } from '@/types';
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<any[]>>> {
+// Helper to determine event status
+const getEventStatus = (startTime: Date, endTime: Date): 'UPCOMING' | 'ACTIVE' | 'ENDED' => {
+  const now = new Date();
+  if (now < startTime) return 'UPCOMING';
+  if (now <= endTime) return 'ACTIVE';
+  return 'ENDED';
+};
+
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
+    // This route is specifically for a logged-in user's events, so a session is required.
     if (!session?.user?.id) {
-      return NextResponse.json({
-        success: false,
-        error: 'Authentication required'
-      }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    // Check if user is organizer or admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true }
-    });
-
-    if (user?.role !== 'ORGANIZER' && user?.role !== 'ADMIN') {
-      return NextResponse.json({
-        success: false,
-        error: 'Organizer or Admin access required'
-      }, { status: 403 });
-    }
-
-    // Fetch events organized by this user
-    const events = await prisma.cTFEvent.findMany({
-      where: { organizerId: session.user.id },
-      include: {
-        organizer: {
-          select: {
-            id: true,
-            username: true,
-            email: true
-          }
-        },
+    // Fetch all events where the current user is a participant.
+    const participatedEvents = await prisma.cTFEvent.findMany({
+      where: {
         participants: {
-          select: {
-            id: true,
-            userId: true,
-            totalScore: true,
-            rank: true
-          }
+          some: {
+            userId: session.user.id,
+          },
         },
-        challenges: {
-          select: {
-            id: true,
-            title: true,
-            category: true,
-            difficulty: true
-          }
-        },
-        _count: {
-          select: {
-            participants: true
-          }
-        }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      include: {
+        // Include the user's specific participation record for this event to get score/rank.
+        participants: {
+          where: {
+            userId: session.user.id,
+          },
+        },
+        // Include a count of all challenges in the event for the progress bar.
+        _count: {
+          select: { challenges: true },
+        },
+      },
+      orderBy: { startTime: 'desc' },
     });
 
-    // Transform events to include status and participant count
-    const transformedEvents = events.map((event: any) => {
-      const now = new Date();
-      const startTime = new Date(event.startTime);
-      const endTime = new Date(event.endTime);
-      
-      let status: 'UPCOMING' | 'ACTIVE' | 'ENDED';
-      if (now < startTime) {
-        status = 'UPCOMING';
-      } else if (now <= endTime) {
-        status = 'ACTIVE';
-      } else {
-        status = 'ENDED';
-      }
+    // Asynchronously transform the data to include the count of solved challenges for each event.
+    const transformedData = await Promise.all(
+      participatedEvents.map(async (event) => {
+        const userParticipation = event.participants[0];
+        const status = getEventStatus(event.startTime, event.endTime);
 
-      return {
-        id: event.id,
-        name: event.name,
-        description: event.description,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        isActive: event.isActive,
-        status,
-        organizer: event.organizer,
-        participants: event.participants,
-        challenges: event.challenges,
-        participantCount: event._count.participants,
-        createdAt: event.createdAt,
-        updatedAt: event.updatedAt
-      };
-    });
+        // Count how many challenges in *this specific event* the user has solved.
+        const solvedChallengesCount = await prisma.solve.count({
+          where: {
+            userId: session.user.id,
+            challenge: {
+              eventId: event.id,
+            },
+          },
+        });
 
-    return NextResponse.json({
-      success: true,
-      data: transformedEvents
-    });
+        return {
+          id: event.id,
+          name: event.name,
+          description: event.description,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          isActive: status === 'ACTIVE',
+          userScore: userParticipation?.totalScore || 0,
+          userRank: userParticipation?.rank || 0,
+          totalChallenges: event._count.challenges,
+          solvedChallenges: solvedChallengesCount, // This now works correctly.
+        };
+      })
+    );
+    
+    // Return the data under the 'events' key, which the frontend dashboard expects.
+    return NextResponse.json({ success: true, events: transformedData });
 
   } catch (error) {
-    console.error('Error fetching organizer events:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error'
-    }, { status: 500 });
+    console.error('Error fetching my-events:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

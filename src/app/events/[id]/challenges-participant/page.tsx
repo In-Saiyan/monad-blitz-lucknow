@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import Link from 'next/link';
+import MatrixBackground from '@/components/ui/effects/MatrixBackground';
+import { FaArrowLeft, FaFileDownload } from 'react-icons/fa';
 
 interface Challenge {
   id: string;
@@ -23,7 +25,7 @@ interface Challenge {
 
 interface Event {
   id: string;
-  title: string;
+  name: string;
   description: string;
   startTime: string;
   endTime: string;
@@ -42,13 +44,14 @@ export default function ChallengesParticipantPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const eventId = params?.id as string;
+
   useEffect(() => {
     if (status === 'loading') return;
     
     async function fetchEvent() {
       try {
-        const resolvedParams = await params;
-        const response = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+        const response = await fetch(`/api/events/${eventId}/challenges-participant`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
@@ -56,7 +59,6 @@ export default function ChallengesParticipantPage() {
         });
         if (response.ok) {
           const eventData = await response.json();
-          console.log('Event data fetched:', eventData);
           setEvent(eventData);
         } else {
           console.error('Failed to fetch event:', response.status);
@@ -69,13 +71,12 @@ export default function ChallengesParticipantPage() {
     }
 
     fetchEvent();
-  }, [params, status]);
+  }, [eventId, status]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const resolvedParams = await params;
-      const response = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+      const response = await fetch(`/api/events/${eventId}/challenges-participant`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
@@ -83,7 +84,6 @@ export default function ChallengesParticipantPage() {
       });
       if (response.ok) {
         const eventData = await response.json();
-        console.log('Data manually refreshed:', eventData);
         setEvent(eventData);
         setMessage({ type: 'success', text: 'Data refreshed successfully!' });
       }
@@ -106,8 +106,7 @@ export default function ChallengesParticipantPage() {
     setMessage(null);
 
     try {
-      const resolvedParams = await params;
-      const response = await fetch(`/api/events/${resolvedParams.id}/challenges/${challengeId}/submit`, {
+      const response = await fetch(`/api/events/${eventId}/challenges/${challengeId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,10 +123,7 @@ export default function ChallengesParticipantPage() {
         });
         setFlagInputs(prev => ({ ...prev, [challengeId]: '' }));
         
-        // Refresh the event data to update solved status
-        console.log('Flag submitted successfully, refreshing data...');
-        const resolvedParams = await params;
-        const refreshResponse = await fetch(`/api/events/${resolvedParams.id}/challenges-participant`, {
+        const refreshResponse = await fetch(`/api/events/${eventId}/challenges-participant`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
@@ -135,7 +131,6 @@ export default function ChallengesParticipantPage() {
         });
         if (refreshResponse.ok) {
           const refreshedEvent = await refreshResponse.json();
-          console.log('Data refreshed:', refreshedEvent);
           setEvent(refreshedEvent);
         } else {
           console.error('Failed to refresh data:', refreshResponse.status);
@@ -158,24 +153,36 @@ export default function ChallengesParticipantPage() {
     return now >= start && now <= end;
   };
 
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case 'easy': return 'bg-green-500/20 text-green-300 border-green-500/50';
+      case 'medium': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50';
+      case 'hard': return 'bg-red-500/20 text-red-300 border-red-500/50';
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/50';
+    }
+  };
+
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading challenges...</div>
+      <div className="relative min-h-screen bg-background flex items-center justify-center">
+        <MatrixBackground />
+        <div className="relative z-10 flex flex-col items-center gap-4 text-primary font-mono">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-accent"></div>
+          <p>Loading Targets...</p>
+        </div>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-400 text-xl mb-4">Event not found</div>
-          <Link
-            href="/events"
-            className="text-blue-400 hover:text-blue-300"
-          >
-            ← Back to Events
+      <div className="relative min-h-screen bg-background flex items-center justify-center">
+        <MatrixBackground />
+        <div className="relative z-10 text-center p-8 bg-background/50 backdrop-blur-sm rounded-xl border border-primary/20">
+          <h2 className="text-2xl font-bold text-primary font-mono mb-4">Event Not Found</h2>
+          <p className="text-muted-foreground mb-6">The requested event could not be loaded.</p>
+          <Link href="/events" className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-transform transform hover:scale-105 inline-block">
+            Back to Events
           </Link>
         </div>
       </div>
@@ -183,71 +190,46 @@ export default function ChallengesParticipantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      {/* Navigation */}
-      <nav className="bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              CTNFT
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Dashboard
-              </Link>
-              <Link href="/events" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Events
-              </Link>
-              <span className="text-gray-300">Welcome, {session?.user?.username}</span>
-              <Link href="/api/auth/signout" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Sign Out
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                {event.title}
-              </h1>
-              <p className="text-gray-300">{event.description}</p>
-              <div className="flex items-center space-x-4 mt-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  isEventActive(event) 
-                    ? 'bg-green-500/20 text-green-300 border border-green-500/50'
-                    : 'bg-red-500/20 text-red-300 border border-red-500/50'
-                }`}>
-                  {isEventActive(event) ? 'Active' : 'Ended'}
-                </span>
-                <span className="text-gray-400 text-sm">
-                  {event.challenges.length} Challenges
-                </span>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors"
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </button>
+    <div className="relative min-h-screen bg-background text-foreground">
+      <MatrixBackground />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <Link href={`/events/${eventId}`} className="inline-flex items-center text-accent hover:underline mb-4 font-mono">
+            <FaArrowLeft className="mr-2" /> Back to Event Overview
+          </Link>
+          <div className="bg-background/50 backdrop-blur-sm rounded-xl p-6 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-primary font-mono mb-2">
+                  {event.name}
+                </h1>
+                <p className="text-muted-foreground">Engage and capture the flags.</p>
+                <div className="flex items-center space-x-4 mt-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                    isEventActive(event) 
+                      ? 'bg-green-500/20 text-green-300 border-green-500/50'
+                      : 'bg-red-500/20 text-red-300 border-red-500/50'
+                  }`}>
+                    {isEventActive(event) ? 'Active' : 'Ended'}
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    {event.challenges.length} Targets
+                  </span>
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="px-3 py-1 text-sm bg-accent/80 hover:bg-accent disabled:opacity-50 text-primary-foreground rounded-md transition-colors"
+                  >
+                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
             </div>
-            <Link
-              href={`/events/${event.id}`}
-              className="text-gray-400 hover:text-gray-300 text-sm"
-            >
-              ← Back to Event
-            </Link>
           </div>
         </div>
 
-        {/* Message */}
         {message && (
-          <div className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6 ${
+          <div className={`bg-background/50 backdrop-blur-sm rounded-xl p-4 border mb-6 ${
             message.type === 'success' 
               ? 'border-green-500/50 text-green-300' 
               : 'border-red-500/50 text-red-300'
@@ -256,29 +238,22 @@ export default function ChallengesParticipantPage() {
           </div>
         )}
 
-        {/* Challenges */}
         <div className="space-y-6">
           {event.challenges.map((challenge) => (
             <div
               key={challenge.id}
-              className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden"
+              className="bg-background/50 backdrop-blur-sm rounded-xl border border-primary/20 overflow-hidden"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <h3 className="text-xl font-semibold text-white">{challenge.title}</h3>
-                      <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm font-medium border border-purple-500/50">
+                    <div className="flex items-center flex-wrap gap-3">
+                      <h3 className="text-xl font-semibold text-primary">{challenge.title}</h3>
+                      <span className="px-2 py-1 bg-primary/20 text-accent rounded-full text-sm font-medium border border-primary/30">
                         {challenge.category}
                       </span>
                       {challenge.difficulty && (
-                        <span className={`px-2 py-1 rounded-full text-sm font-medium border ${
-                          challenge.difficulty === 'Easy' 
-                            ? 'bg-green-500/20 text-green-300 border-green-500/50'
-                            : challenge.difficulty === 'Medium'
-                            ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50'
-                            : 'bg-red-500/20 text-red-300 border-red-500/50'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-sm font-medium border ${getDifficultyColor(challenge.difficulty)}`}>
                           {challenge.difficulty}
                         </span>
                       )}
@@ -288,7 +263,7 @@ export default function ChallengesParticipantPage() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 text-gray-400 text-sm">
+                    <div className="mt-2 text-muted-foreground text-sm">
                       {challenge._count.solves} solve{challenge._count.solves !== 1 ? 's' : ''}
                     </div>
                   </div>
@@ -296,7 +271,7 @@ export default function ChallengesParticipantPage() {
                     onClick={() => setExpandedChallenge(
                       expandedChallenge === challenge.id ? null : challenge.id
                     )}
-                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    className="p-2 text-muted-foreground hover:text-primary transition-colors"
                   >
                     {expandedChallenge === challenge.id ? (
                       <ChevronUpIcon className="w-5 h-5" />
@@ -307,34 +282,31 @@ export default function ChallengesParticipantPage() {
                 </div>
 
                 {expandedChallenge === challenge.id && (
-                  <div className="mt-6 border-t border-white/10 pt-6">
-                    {/* Challenge Description */}
+                  <div className="mt-6 border-t border-primary/10 pt-6">
                     <div className="mb-6">
-                      <h4 className="text-lg font-medium text-white mb-3">Description</h4>
-                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                        <LinkifiedText text={challenge.description} className="text-gray-300 whitespace-pre-wrap" />
+                      <h4 className="text-lg font-medium text-primary mb-3">Description</h4>
+                      <div className="bg-background/70 rounded-lg p-4 border border-primary/10">
+                        <LinkifiedText text={challenge.description} className="text-muted-foreground whitespace-pre-wrap" />
                       </div>
                     </div>
 
-                    {/* File Download */}
                     {challenge.fileUrl && (
                       <div className="mb-6">
-                        <h4 className="text-lg font-medium text-white mb-3">Attachments</h4>
+                        <h4 className="text-lg font-medium text-primary mb-3">Attachments</h4>
                         <a
                           href={challenge.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all transform hover:scale-105"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all transform hover:scale-105"
                         >
-                          � Download File
+                          <FaFileDownload /> Download File
                         </a>
                       </div>
                     )}
 
-                    {/* Flag Submission */}
                     {isEventActive(event) && !challenge.solved && (
                       <div>
-                        <h4 className="text-lg font-medium text-white mb-3">Submit Flag</h4>
+                        <h4 className="text-lg font-medium text-primary mb-3">Submit Flag</h4>
                         <div className="flex space-x-3">
                           <input
                             type="text"
@@ -343,14 +315,14 @@ export default function ChallengesParticipantPage() {
                               ...prev,
                               [challenge.id]: e.target.value
                             }))}
-                            placeholder="ctnft{...}"
-                            className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-lg focus:outline-none focus:border-blue-400 text-white placeholder-gray-400"
+                            placeholder="ctf{...}"
+                            className="flex-1 px-4 py-3 bg-background/70 border border-primary/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-foreground placeholder-muted-foreground"
                             disabled={submittingFlag === challenge.id}
                           />
                           <button
                             onClick={() => handleFlagSubmit(challenge.id)}
                             disabled={submittingFlag === challenge.id || !flagInputs[challenge.id]?.trim()}
-                            className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all transform hover:scale-105 disabled:transform-none"
+                            className="px-6 py-3 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg font-medium transition-all transform hover:scale-105 disabled:transform-none"
                           >
                             {submittingFlag === challenge.id ? 'Submitting...' : 'Submit'}
                           </button>
@@ -382,10 +354,10 @@ export default function ChallengesParticipantPage() {
           ))}
 
           {event.challenges.length === 0 && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-12 border border-white/20 text-center">
-              <div className="text-6xl mb-4">🎯</div>
-              <h3 className="text-xl font-semibold text-white mb-2">No Challenges Yet</h3>
-              <p className="text-gray-400">Challenges will appear here once the event organizer adds them.</p>
+            <div className="bg-background/50 backdrop-blur-sm rounded-xl p-12 border border-primary/20 text-center">
+              <div className="text-6xl mb-4 text-primary">🎯</div>
+              <h3 className="text-xl font-semibold text-primary mb-2">No Targets Available</h3>
+              <p className="text-muted-foreground">Targets will appear here once the event organizer adds them.</p>
             </div>
           )}
         </div>
