@@ -73,6 +73,17 @@ export default function NFTRewardDistribution({
     try {
       setLoading(true);
       const response = await fetch(`/api/events/${eventId}/nft-rewards`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+      }
+      
       const data = await response.json();
 
       if (data.success) {
@@ -96,6 +107,16 @@ export default function NFTRewardDistribution({
         method: 'POST'
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+      }
+
       const result = await response.json();
       setDistributionResult(result);
 
@@ -107,7 +128,7 @@ export default function NFTRewardDistribution({
       console.error('Error distributing NFTs:', error);
       setDistributionResult({
         success: false,
-        message: 'Failed to distribute NFTs. Please try again.'
+        message: `Failed to distribute NFTs: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`
       });
     } finally {
       setDistributing(false);

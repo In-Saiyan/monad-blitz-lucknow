@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { getContractAddresses, MONAD_TESTNET_CONFIG, addMonadTestnetToWallet } from '@/lib/blockchain';
 
 export default function MonadTestPage() {
@@ -201,12 +202,12 @@ export default function MonadTestPage() {
 
         {/* Navigation */}
         <div className="text-center mt-8">
-          <a 
+          <Link 
             href="/"
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-bold transition-all transform hover:scale-105 inline-block"
           >
             🏠 Back to CTNFT Platform
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -45,9 +45,22 @@ export class CTNFTContract {
   private signer: ethers.Signer;
 
   constructor(contractAddress: string, providerUrl: string, privateKey: string) {
-    const provider = new ethers.JsonRpcProvider(providerUrl);
-    this.signer = new ethers.Wallet(privateKey, provider);
-    this.contract = new ethers.Contract(contractAddress, CTNFT_ABI, this.signer);
+    try {
+      console.log('Initializing CTNFTContract with:', {
+        contractAddress,
+        providerUrl,
+        hasPrivateKey: !!privateKey
+      });
+      
+      const provider = new ethers.JsonRpcProvider(providerUrl);
+      this.signer = new ethers.Wallet(privateKey, provider);
+      this.contract = new ethers.Contract(contractAddress, CTNFT_ABI, this.signer);
+      
+      console.log('CTNFTContract initialized successfully');
+    } catch (error) {
+      console.error('Error initializing CTNFTContract:', error);
+      throw error;
+    }
   }
 
   /**
@@ -58,22 +71,75 @@ export class CTNFTContract {
       const startTimestamp = Math.floor(startTime.getTime() / 1000);
       const endTimestamp = Math.floor(endTime.getTime() / 1000);
       
-      const tx = await this.contract.createEvent(name, startTimestamp, endTimestamp);
-      const receipt = await tx.wait();
+      console.log(`🔗 Creating event with params:`, {
+        name,
+        startTimestamp,
+        endTimestamp,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
+      });
       
-      // Extract event ID from the emitted event
+      const tx = await this.contract.createEvent(name, startTimestamp, endTimestamp);
+      console.log(`📋 Transaction sent:`, tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log(`✅ Transaction confirmed in block:`, receipt.blockNumber);
+      console.log(`📊 Transaction receipt logs:`, receipt.logs.length);
+      
+      // Try multiple approaches to extract the event ID
+      let eventId: number | null = null;
+      
+      // Approach 1: Look for EventCreated event by topic
+      const eventCreatedTopic = ethers.id("EventCreated(uint256,string,uint256,uint256)");
       const eventCreatedLog = receipt.logs.find((log: any) => 
-        log.topics[0] === ethers.id("EventCreated(uint256,string,uint256,uint256)")
+        log.topics && log.topics[0] === eventCreatedTopic
       );
       
-      if (eventCreatedLog) {
-        const eventId = parseInt(eventCreatedLog.topics[1], 16);
-        return eventId;
+      if (eventCreatedLog && eventCreatedLog.topics && eventCreatedLog.topics.length > 1) {
+        eventId = parseInt(eventCreatedLog.topics[1], 16);
+        console.log(`🎯 Event ID extracted from topics:`, eventId);
+      } else {
+        console.log(`⚠️ EventCreated log not found in topics, trying interface parsing...`);
+        
+        // Approach 2: Use contract interface to parse logs
+        try {
+          const iface = new ethers.Interface(CTNFT_ABI);
+          const parsedLogs = receipt.logs.map((log: any) => {
+            try {
+              return iface.parseLog(log);
+            } catch {
+              return null;
+            }
+          }).filter(Boolean);
+          
+          console.log(`📝 Parsed logs:`, parsedLogs.map((log: any) => log?.name));
+          
+          const eventCreatedParsed = parsedLogs.find((log: any) => log?.name === 'EventCreated');
+          if (eventCreatedParsed && eventCreatedParsed.args) {
+            eventId = Number(eventCreatedParsed.args[0]);
+            console.log(`🎯 Event ID extracted from parsed logs:`, eventId);
+          }
+        } catch (parseError) {
+          console.error(`❌ Failed to parse logs:`, parseError);
+        }
       }
       
-      throw new Error('Failed to extract event ID');
+      if (eventId === null || eventId === 0) {
+        console.error(`❌ Failed to extract valid event ID. Receipt:`, {
+          blockNumber: receipt.blockNumber,
+          transactionHash: receipt.hash,
+          logs: receipt.logs.map((log: any) => ({
+            topics: log.topics,
+            data: log.data
+          }))
+        });
+        throw new Error('Failed to extract valid event ID from transaction receipt');
+      }
+      
+      console.log(`✅ Event created successfully with ID:`, eventId);
+      return eventId;
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error('❌ Error creating event:', error);
       throw error;
     }
   }
@@ -126,12 +192,58 @@ export class CTNFTContract {
     totalParticipants: number
   ): Promise<void> {
     try {
+      // Validate all inputs
+      if (!Array.isArray(recipients) || recipients.length === 0) {
+        throw new Error('Recipients array is empty or invalid');
+      }
+      
+      if (!Array.isArray(ranks) || ranks.length !== recipients.length) {
+        throw new Error(`Ranks array length (${ranks.length}) doesn't match recipients length (${recipients.length})`);
+      }
+      
+      if (!Array.isArray(scores) || scores.length !== recipients.length) {
+        throw new Error(`Scores array length (${scores.length}) doesn't match recipients length (${recipients.length})`);
+      }
+
+      // Convert all numbers to proper BigNumber format for uint256
+      const safeEventId = Math.floor(Number(eventId));
+      const safeRanks = ranks.map(rank => Math.floor(Number(rank)));
+      const safeTotalParticipants = Math.floor(Number(totalParticipants));
+      const safeScores = scores.map(score => Math.floor(Number(score)));
+
+      // Final validation
+      if (!Number.isFinite(safeEventId) || safeEventId < 0) {
+        throw new Error(`Invalid eventId: ${eventId} -> ${safeEventId}`);
+      }
+      
+      if (!Number.isFinite(safeTotalParticipants) || safeTotalParticipants <= 0) {
+        throw new Error(`Invalid totalParticipants: ${totalParticipants} -> ${safeTotalParticipants}`);
+      }
+
+      const invalidRanks = safeRanks.filter(rank => !Number.isFinite(rank) || rank <= 0);
+      if (invalidRanks.length > 0) {
+        throw new Error(`Invalid ranks found: ${invalidRanks}`);
+      }
+
+      const invalidScores = safeScores.filter(score => !Number.isFinite(score) || score < 0);
+      if (invalidScores.length > 0) {
+        throw new Error(`Invalid scores found: ${invalidScores}`);
+      }
+
+      console.log('🔗 Calling batchMintRewards with validated data:', {
+        recipients: recipients.length,
+        eventId: safeEventId,
+        ranks: safeRanks,
+        scores: safeScores,
+        totalParticipants: safeTotalParticipants
+      });
+
       const tx = await this.contract.batchMintRewards(
         recipients,
-        eventId,
-        ranks,
-        scores,
-        totalParticipants
+        safeEventId,
+        safeRanks,
+        safeScores,
+        safeTotalParticipants
       );
       await tx.wait();
     } catch (error) {
@@ -361,8 +473,8 @@ export function getContractAddresses() {
  * Initialize contract instance
  */
 export function initializeContract(): CTNFTContract | null {
-  // Use deployment addresses from JSON file, fallback to env var
-  const contractAddress = process.env.CTNFT_CONTRACT_ADDRESS || deploymentAddresses.ctnft;
+  // Use the CTNFTReward contract (not the basic CTNFT contract) for reward functionality
+  const contractAddress = process.env.CTNFT_REWARD_CONTRACT_ADDRESS || deploymentAddresses.ctnftReward;
   const providerUrl = process.env.MONAD_URL || "https://rpc.ankr.com/monad_testnet";
   const privateKey = process.env.PRIVATE_KEY;
 
@@ -375,7 +487,7 @@ export function initializeContract(): CTNFTContract | null {
     return null;
   }
 
-  console.log(`Connecting to Monad Testnet with contract: ${contractAddress}`);
+  console.log(`Connecting to Monad Testnet with CTNFTReward contract: ${contractAddress}`);
   return new CTNFTContract(contractAddress, providerUrl, privateKey);
 }
 

@@ -8,18 +8,28 @@ import { FaTrophy, FaMedal, FaAward, FaCrown, FaUser, FaCalendarAlt, FaHashtag }
 import { motion, AnimatePresence } from "framer-motion"
 
 interface EventLeaderboardPageProps {
-  params: {
+  params: Promise<{
     eventId: string
-  }
+  }>
 }
 
 export default function EventLeaderboardPage({ params }: EventLeaderboardPageProps) {
-  const { eventId } = params
+  const [eventId, setEventId] = useState<string>('')
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // In a real app, you'd fetch event details
-  const [eventName, setEventName] = useState(`Event #${eventId.slice(0, 6)}...`)
+  const [eventName, setEventName] = useState('')
+
+  // Resolve params
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setEventId(resolvedParams.eventId)
+      setEventName(`Event #${resolvedParams.eventId.slice(0, 6)}...`)
+    }
+    resolveParams()
+  }, [params])
 
   useEffect(() => {
     if (!eventId) return

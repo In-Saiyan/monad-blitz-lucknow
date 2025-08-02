@@ -1,24 +1,5 @@
 "use client"
 
-<<<<<<< HEAD
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ApiResponse, UserRole } from '@/types';
-import OrganizerRequestForm from '@/components/OrganizerRequestForm';
-import UserNFTCollection from '@/components/UserNFTCollection';
-import { useValidatedSession } from '@/hooks/useValidatedSession';
-import MatrixBackground from '@/components/ui/effects/MatrixBackground';
-import { FaUserShield, FaUserCog, FaTrophy, FaCalendarCheck, FaTasks, FaChartBar, FaWallet, FaEdit, FaSave, FaTimes, FaPlusSquare, FaUserSecret } from 'react-icons/fa';
-
-// Extend Window interface for MetaMask
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
-=======
 import type React from "react"
 
 import { useRouter } from "next/navigation"
@@ -26,6 +7,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import type { ApiResponse, UserRole, NFTMetadata } from "@/types"
 import OrganizerRequestForm from "@/components/OrganizerRequestForm"
+import UserNFTCollection from "@/components/UserNFTCollection"
 import { useValidatedSession } from "@/hooks/useValidatedSession"
 import MatrixBackground from "@/components/ui/effects/MatrixBackground"
 import {
@@ -52,7 +34,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 
 // --- Type definitions ---
->>>>>>> 8787f02 (improved ui)
 interface UserProfile {
   id: string
   username: string
@@ -64,16 +45,10 @@ interface UserProfile {
 }
 
 interface UserStats {
-<<<<<<< HEAD
-  totalEvents: number;
-  totalSolves: number;
-  averageRank: number;
-=======
   totalEvents: number
   totalSolves: number
   averageRank: number
   nftsEarned: NFTMetadata[]
->>>>>>> 8787f02 (improved ui)
 }
 
 export default function Profile() {
@@ -134,14 +109,8 @@ export default function Profile() {
       })
       const data: ApiResponse<any> = await response.json()
       if (data.success) {
-<<<<<<< HEAD
-        setProfile(prev => prev ? { ...prev, walletAddress: editedWallet || null } : null);
-        setEditMode(false);
-        alert('Wallet address updated successfully!');
-=======
         setProfile((prev) => (prev ? { ...prev, walletAddress: editedWallet || null } : null))
         setEditMode(false)
->>>>>>> 8787f02 (improved ui)
       } else {
         alert(data.error || "Failed to update wallet address")
       }
@@ -151,95 +120,7 @@ export default function Profile() {
     }
   }
 
-<<<<<<< HEAD
-  const connectWallet = async () => {
-    try {
-      if (typeof window.ethereum !== 'undefined') {
-        // Request account access
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts[0]) {
-          setEditedWallet(accounts[0]);
-          
-          // Check if user is on Monad testnet and offer to switch
-          try {
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-            const monadChainId = '0x279F'; // 10143 in hex
-            
-            if (chainId !== monadChainId) {
-              const switchToMonad = confirm(
-                'Your wallet is not connected to Monad testnet. Would you like to add/switch to Monad testnet?'
-              );
-              
-              if (switchToMonad) {
-                await addMonadTestnetToWallet();
-              }
-            }
-          } catch (chainError) {
-            console.warn('Could not check chain ID:', chainError);
-          }
-        }
-      } else {
-        alert('Please install MetaMask to connect your wallet');
-      }
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      alert('Failed to connect wallet');
-    }
-  };
-
-  const addMonadTestnetToWallet = async () => {
-    try {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: '0x279F', // 10143 in hex
-          chainName: 'Monad Testnet',
-          nativeCurrency: {
-            name: 'MON',
-            symbol: 'MON',
-            decimals: 18
-          },
-          rpcUrls: ['https://rpc.ankr.com/monad_testnet'],
-          blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-        }]
-      });
-      alert('Monad testnet added to MetaMask successfully!');
-    } catch (error) {
-      console.error('Error adding Monad testnet:', error);
-      alert('Failed to add Monad testnet to wallet');
-    }
-  };
-
-  const makeOrganizer = async () => {
-    try {
-      const response = await fetch('/api/admin/make-organizer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: profile?.email
-        }),
-      });
-
-      const data: ApiResponse<any> = await response.json();
-      
-      if (data.success) {
-        alert('You are now an organizer! Please refresh the page.');
-        fetchProfileData();
-      } else {
-        alert(data.error || 'Failed to become organizer');
-      }
-    } catch (error) {
-      console.error('Error becoming organizer:', error);
-      alert('An error occurred');
-    }
-  };
-
-  if (status === 'loading' || loading) {
-=======
   if (status === "loading" || loading) {
->>>>>>> 8787f02 (improved ui)
     return (
       <div className="relative min-h-screen bg-background flex items-center justify-center">
         <MatrixBackground />
@@ -383,89 +264,11 @@ export default function Profile() {
               </div>
             </div>
 
-<<<<<<< HEAD
-          {/* Wallet Address */}
-          <div className="border-t border-white/10 pt-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Wallet Address</h3>
-            {editMode ? (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="text"
-                    value={editedWallet}
-                    onChange={(e) => setEditedWallet(e.target.value)}
-                    placeholder="0x... (for NFT rewards)"
-                    className="flex-1 px-4 py-2 bg-white/5 border border-white/20 rounded-lg focus:outline-none focus:border-blue-400 text-white placeholder-gray-400"
-                  />
-                  <button
-                    onClick={connectWallet}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
-                  >
-                    🦊 Connect MetaMask
-                  </button>
-                </div>
-                
-                {/* Validation feedback */}
-                {editedWallet && !editedWallet.match(/^0x[a-fA-F0-9]{40}$/) && (
-                  <p className="text-red-400 text-sm">
-                    ⚠️ Please enter a valid Ethereum address (0x followed by 40 hex characters)
-                  </p>
-                )}
-                
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={updateWalletAddress}
-                    disabled={!!editedWallet && !editedWallet.match(/^0x[a-fA-F0-9]{40}$/)}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditMode(false);
-                      setEditedWallet(profile?.walletAddress || '');
-                    }}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300 font-mono break-all">
-                  {profile.walletAddress || 'No wallet address set'}
-                </span>
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  {profile.walletAddress ? 'Edit' : 'Add Wallet'}
-                </button>
-              </div>
-            )}
-            <div className="mt-3 space-y-2">
-              <p className="text-gray-400 text-sm">
-                Connect your wallet to receive NFT rewards automatically
-              </p>
-              {!profile.walletAddress && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                  <p className="text-yellow-300 text-sm">
-                    💡 <strong>Tip:</strong> Connect your Monad testnet wallet to receive exclusive NFT rewards based on your CTF performance!
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-            <div className="border-t border-primary/10 pt-6">
-              <h3 className="text-lg font-semibold font-mono text-primary mb-4 flex items-center gap-2"><FaWallet /> Wallet Address</h3>
-=======
             {/* Wallet Address Section */}
             <div className="border-t border-primary/10 pt-6 mt-6">
               <h3 className="text-xl font-bold font-mono text-primary mb-4 flex items-center gap-3">
                 <FaWallet className="text-accent" /> Wallet Address
               </h3>
->>>>>>> 8787f02 (improved ui)
               {editMode ? (
                 <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3">
                   <input
@@ -670,37 +473,44 @@ const StatCard = ({
 
 const NftCard = ({ nft }: { nft: NFTMetadata }) => {
   const tierStyles = {
-    LEGENDARY: {
+    DIAMOND: {
       gradient: "from-yellow-500 to-orange-500",
       text: "text-yellow-200",
       border: "border-yellow-400",
       icon: <FaCrown className="w-10 h-10" />,
       glow: "shadow-yellow-500/30",
     },
-    EPIC: {
+    PLATINUM: {
       gradient: "from-purple-500 to-pink-500",
       text: "text-purple-200",
       border: "border-purple-400",
       icon: <FaGem className="w-10 h-10" />,
       glow: "shadow-purple-500/30",
     },
-    RARE: {
+    GOLD: {
       gradient: "from-blue-500 to-cyan-500",
       text: "text-blue-200",
       border: "border-blue-400",
       icon: <FaStar className="w-10 h-10" />,
       glow: "shadow-blue-500/30",
     },
-    COMMON: {
-      gradient: "from-gray-600 to-gray-700",
+    SILVER: {
+      gradient: "from-gray-400 to-gray-500",
       text: "text-gray-200",
-      border: "border-gray-500",
-      icon: <FaCube className="w-10 h-10" />,
+      border: "border-gray-400",
+      icon: <FaCoins className="w-10 h-10" />,
       glow: "shadow-gray-500/30",
+    },
+    BRONZE: {
+      gradient: "from-amber-600 to-amber-700",
+      text: "text-amber-200",
+      border: "border-amber-500",
+      icon: <FaCube className="w-10 h-10" />,
+      glow: "shadow-amber-500/30",
     },
   }
   const tier = nft.tier as keyof typeof tierStyles
-  const currentTierStyle = tierStyles[tier] || tierStyles.COMMON
+  const currentTierStyle = tierStyles[tier] || tierStyles.BRONZE
 
   return (
     <div

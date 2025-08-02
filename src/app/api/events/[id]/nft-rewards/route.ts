@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const eventId = params.id;
+    const { id: eventId } = await params;
 
     // Check if user is organizer or admin
     const event = await prisma.cTFEvent.findUnique({
@@ -41,21 +41,30 @@ export async function POST(
     }
 
     // Distribute NFT rewards
-    const result = await distributeNFTRewards(eventId);
+    try {
+      const result = await distributeNFTRewards(eventId);
 
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: `Successfully distributed NFTs to ${result.totalDistributed} participants`,
-        totalDistributed: result.totalDistributed
-      });
-    } else {
+      if (result.success) {
+        return NextResponse.json({
+          success: true,
+          message: `Successfully distributed NFTs to ${result.totalDistributed} participants`,
+          totalDistributed: result.totalDistributed
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          message: `Partial distribution completed. ${result.totalDistributed} NFTs distributed.`,
+          totalDistributed: result.totalDistributed,
+          errors: result.errors
+        }, { status: 207 }); // 207 Multi-Status
+      }
+    } catch (distributionError) {
+      console.error('NFT distribution error:', distributionError);
       return NextResponse.json({
         success: false,
-        message: `Partial distribution completed. ${result.totalDistributed} NFTs distributed.`,
-        totalDistributed: result.totalDistributed,
-        errors: result.errors
-      }, { status: 207 }); // 207 Multi-Status
+        error: 'Distribution failed',
+        message: distributionError instanceof Error ? distributionError.message : 'Unknown error during NFT distribution'
+      }, { status: 500 });
     }
 
   } catch (error) {
@@ -69,7 +78,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -77,7 +86,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const eventId = params.id;
+    const { id: eventId } = await params;
 
     // Check if user is organizer or admin
     const event = await prisma.cTFEvent.findUnique({
