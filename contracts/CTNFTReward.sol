@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
  * @title CTNFTReward
@@ -12,9 +11,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  * Supports tiered NFTs based on user performance in CTF events
  */
 contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
 
     // NFT Tiers
     enum NFTTier {
@@ -62,7 +59,7 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
         uint256 score
     );
 
-    constructor() ERC721("CTNFT Reward", "CTNFT") {}
+    constructor() ERC721("CTNFT Reward", "CTNFT") Ownable(msg.sender) {}
 
     /**
      * @dev Create a new CTF event
@@ -103,7 +100,7 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
         uint256 rank,
         uint256 score,
         uint256 totalParticipants
-    ) external onlyOwner {
+    ) public onlyOwner {
         require(recipient != address(0), "Invalid recipient");
         require(eventId < eventCounter, "Event does not exist");
         require(!events[eventId].hasReceived[recipient], "Already received NFT");
@@ -114,8 +111,8 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
         // Determine NFT tier based on rank percentile
         NFTTier tier = _determineTier(rank, totalParticipants);
         
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter;
+        _tokenIdCounter++;
 
         // Store NFT metadata
         nftMetadata[tokenId] = NFTMetadata({
@@ -134,8 +131,8 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
         _safeMint(recipient, tokenId);
         
         // Set token URI based on tier
-        string memory tokenURI = _generateTokenURI(tokenId, tier);
-        _setTokenURI(tokenId, tokenURI);
+        string memory uri = _generateTokenURI(tokenId, tier);
+        _setTokenURI(tokenId, uri);
 
         emit NFTMinted(recipient, tokenId, eventId, tier, rank, score);
     }
@@ -190,7 +187,7 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
      * @param tokenId Token ID
      */
     function getNFTMetadata(uint256 tokenId) external view returns (NFTMetadata memory) {
-        require(_exists(tokenId), "Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
         return nftMetadata[tokenId];
     }
 
@@ -259,10 +256,6 @@ contract CTNFTReward is ERC721, ERC721URIStorage, Ownable {
     }
 
     // Required overrides
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
     function tokenURI(uint256 tokenId)
         public
         view
