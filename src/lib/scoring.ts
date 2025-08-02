@@ -59,17 +59,19 @@ export function calculateRank(userScore: number, allScores: number[]): number {
 /**
  * Determine NFT tier based on rank percentile
  */
-export function determineNFTTier(rank: number, totalParticipants: number): 'LEGENDARY' | 'EPIC' | 'RARE' | 'COMMON' {
+export function determineNFTTier(rank: number, totalParticipants: number): 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' {
   const percentile = (rank / totalParticipants) * 100;
   
   if (percentile <= 1) {
-    return 'LEGENDARY'; // Top 1%
+    return 'DIAMOND';   // Top 1%
+  } else if (percentile <= 5) {
+    return 'PLATINUM';  // Top 5%
   } else if (percentile <= 10) {
-    return 'EPIC';      // Top 10%
-  } else if (percentile <= 25) {
-    return 'RARE';      // Top 25%
+    return 'GOLD';      // Top 10%
+  } else if (percentile <= 20) {
+    return 'SILVER';    // Top 20%
   } else {
-    return 'COMMON';    // All others
+    return 'BRONZE';    // All others
   }
 }
 

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import LeaderboardSection from '@/components/LeaderboardSection';
+import NFTRewardDistribution from '@/components/NFTRewardDistribution';
 
 interface Challenge {
   id: string;
@@ -635,6 +636,16 @@ export default function EventPage() {
                 )}
               </div>
             </div>
+
+            {/* NFT Reward Distribution - Only for organizers */}
+            {session?.user?.email === event.organizer?.email && (
+              <NFTRewardDistribution
+                eventId={event.id}
+                eventName={event.name}
+                eventEnded={event.status === 'ENDED'}
+                isOrganizer={true}
+              />
+            )}
 
             {/* Leaderboard - Show if joined OR if event has ended */}
             {(hasJoined || event.status === 'ENDED') && (

@@ -3,9 +3,17 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ApiResponse, UserRole, NFTMetadata } from '@/types';
+import { ApiResponse, UserRole } from '@/types';
 import OrganizerRequestForm from '@/components/OrganizerRequestForm';
+import UserNFTCollection from '@/components/UserNFTCollection';
 import { useValidatedSession } from '@/hooks/useValidatedSession';
+
+// Extend Window interface for MetaMask
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 interface UserProfile {
   id: string;
@@ -21,7 +29,6 @@ interface UserStats {
   totalEvents: number;
   totalSolves: number;
   averageRank: number;
-  nftsEarned: NFTMetadata[];
 }
 
 export default function Profile() {
@@ -70,6 +77,12 @@ export default function Profile() {
   };
 
   const updateWalletAddress = async () => {
+    // Validate wallet address format
+    if (editedWallet && !editedWallet.match(/^0x[a-fA-F0-9]{40}$/)) {
+      alert('Please enter a valid Ethereum wallet address (0x followed by 40 hexadecimal characters)');
+      return;
+    }
+
     try {
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
@@ -86,12 +99,71 @@ export default function Profile() {
       if (data.success) {
         setProfile(prev => prev ? { ...prev, walletAddress: editedWallet || null } : null);
         setEditMode(false);
+        alert('Wallet address updated successfully!');
       } else {
         alert(data.error || 'Failed to update wallet address');
       }
     } catch (error) {
       console.error('Error updating wallet:', error);
       alert('An error occurred while updating wallet address');
+    }
+  };
+
+  const connectWallet = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts[0]) {
+          setEditedWallet(accounts[0]);
+          
+          // Check if user is on Monad testnet and offer to switch
+          try {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            const monadChainId = '0x279F'; // 10143 in hex
+            
+            if (chainId !== monadChainId) {
+              const switchToMonad = confirm(
+                'Your wallet is not connected to Monad testnet. Would you like to add/switch to Monad testnet?'
+              );
+              
+              if (switchToMonad) {
+                await addMonadTestnetToWallet();
+              }
+            }
+          } catch (chainError) {
+            console.warn('Could not check chain ID:', chainError);
+          }
+        }
+      } else {
+        alert('Please install MetaMask to connect your wallet');
+      }
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      alert('Failed to connect wallet');
+    }
+  };
+
+  const addMonadTestnetToWallet = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x279F', // 10143 in hex
+          chainName: 'Monad Testnet',
+          nativeCurrency: {
+            name: 'MON',
+            symbol: 'MON',
+            decimals: 18
+          },
+          rpcUrls: ['https://rpc.ankr.com/monad_testnet'],
+          blockExplorerUrls: ['https://testnet.monadexplorer.com/']
+        }]
+      });
+      alert('Monad testnet added to MetaMask successfully!');
+    } catch (error) {
+      console.error('Error adding Monad testnet:', error);
+      alert('Failed to add Monad testnet to wallet');
     }
   };
 
@@ -212,43 +284,74 @@ export default function Profile() {
           <div className="border-t border-white/10 pt-6">
             <h3 className="text-lg font-semibold text-white mb-4">Wallet Address</h3>
             {editMode ? (
-              <div className="flex items-center space-x-3">
-                <input
-                  type="text"
-                  value={editedWallet}
-                  onChange={(e) => setEditedWallet(e.target.value)}
-                  placeholder="0x... (for NFT rewards)"
-                  className="flex-1 px-4 py-2 bg-white/5 border border-white/20 rounded-lg focus:outline-none focus:border-blue-400 text-white placeholder-gray-400"
-                />
-                <button
-                  onClick={updateWalletAddress}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditMode(false)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  Cancel
-                </button>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    value={editedWallet}
+                    onChange={(e) => setEditedWallet(e.target.value)}
+                    placeholder="0x... (for NFT rewards)"
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/20 rounded-lg focus:outline-none focus:border-blue-400 text-white placeholder-gray-400"
+                  />
+                  <button
+                    onClick={connectWallet}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
+                  >
+                    🦊 Connect MetaMask
+                  </button>
+                </div>
+                
+                {/* Validation feedback */}
+                {editedWallet && !editedWallet.match(/^0x[a-fA-F0-9]{40}$/) && (
+                  <p className="text-red-400 text-sm">
+                    ⚠️ Please enter a valid Ethereum address (0x followed by 40 hex characters)
+                  </p>
+                )}
+                
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={updateWalletAddress}
+                    disabled={!!editedWallet && !editedWallet.match(/^0x[a-fA-F0-9]{40}$/)}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditMode(false);
+                      setEditedWallet(profile?.walletAddress || '');
+                    }}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-gray-300 font-mono">
+                <span className="text-gray-300 font-mono break-all">
                   {profile.walletAddress || 'No wallet address set'}
                 </span>
                 <button
                   onClick={() => setEditMode(true)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
                 >
-                  Edit
+                  {profile.walletAddress ? 'Edit' : 'Add Wallet'}
                 </button>
               </div>
             )}
-            <p className="text-gray-400 text-sm mt-2">
-              Connect your wallet to receive NFT rewards automatically
-            </p>
+            <div className="mt-3 space-y-2">
+              <p className="text-gray-400 text-sm">
+                Connect your wallet to receive NFT rewards automatically
+              </p>
+              {!profile.walletAddress && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <p className="text-yellow-300 text-sm">
+                    💡 <strong>Tip:</strong> Connect your Monad testnet wallet to receive exclusive NFT rewards based on your CTF performance!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Organizer Request */}
@@ -283,49 +386,7 @@ export default function Profile() {
         )}
 
         {/* NFT Collection */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20">
-          <h2 className="text-2xl font-bold text-white mb-6">NFT Collection</h2>
-          
-          {stats?.nftsEarned && stats.nftsEarned.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {stats.nftsEarned.map((nft, index) => (
-                <div key={index} className="bg-white/5 rounded-lg p-6 border border-white/10">
-                  <div className={`w-full h-32 rounded-lg mb-4 flex items-center justify-center text-4xl ${
-                    nft.tier === 'LEGENDARY' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                    nft.tier === 'EPIC' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                    nft.tier === 'RARE' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                    'bg-gradient-to-r from-gray-500 to-gray-600'
-                  }`}>
-                    🏆
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{nft.eventName}</h3>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-gray-300">Tier: <span className="text-white font-medium">{nft.tier}</span></p>
-                    <p className="text-gray-300">Rank: <span className="text-white font-medium">#{nft.rank}</span></p>
-                    <p className="text-gray-300">Score: <span className="text-white font-medium">{nft.score}</span></p>
-                    <p className="text-gray-300">Minted: <span className="text-white font-medium">
-                      {new Date(nft.mintTimestamp).toLocaleDateString()}
-                    </span></p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🏆</div>
-              <h3 className="text-xl font-semibold text-white mb-2">No NFTs Yet</h3>
-              <p className="text-gray-400 mb-6">
-                Participate in CTF events and earn your place on the leaderboard to receive exclusive NFT rewards!
-              </p>
-              <Link
-                href="/dashboard"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium inline-block"
-              >
-                Join an Event
-              </Link>
-            </div>
-          )}
-        </div>
+        <UserNFTCollection />
       </div>
     </div>
   );

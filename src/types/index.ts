@@ -83,19 +83,22 @@ export interface LeaderboardEntry {
 }
 
 export enum NFTTier {
-  COMMON = 'COMMON',
-  RARE = 'RARE',
-  EPIC = 'EPIC',
-  LEGENDARY = 'LEGENDARY'
+  DIAMOND = 'DIAMOND',    // Top 1%
+  PLATINUM = 'PLATINUM',  // Top 5%
+  GOLD = 'GOLD',          // Top 10%
+  SILVER = 'SILVER',      // Top 20%
+  BRONZE = 'BRONZE'       // All others
 }
 
 export interface NFTMetadata {
+  tokenId?: string;
   eventId: string;
   tier: NFTTier;
   rank: number;
   score: number;
   eventName: string;
   mintTimestamp: Date;
+  walletAddress?: string;
 }
 
 export interface ScoringConfig {

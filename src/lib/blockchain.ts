@@ -1,5 +1,13 @@
 import { ethers } from 'ethers';
 import { NFTTier } from '@/types';
+import deploymentAddresses from '../../deployment-addresses.json';
+
+// Extend Window interface for MetaMask
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 // Contract ABI (simplified for key functions)
 const CTNFT_ABI = [
@@ -16,6 +24,21 @@ const CTNFT_ABI = [
   "event EventCreated(uint256 indexed eventId, string name, uint256 startTime, uint256 endTime)",
   "event NFTMinted(address indexed recipient, uint256 indexed tokenId, uint256 indexed eventId, uint8 tier, uint256 rank, uint256 score)"
 ];
+
+/**
+ * Monad testnet network configuration
+ */
+export const MONAD_TESTNET_CONFIG = {
+  chainId: '0x279F', // 10143 in hex
+  chainName: 'Monad Testnet',
+  nativeCurrency: {
+    name: 'MON',
+    symbol: 'MON',
+    decimals: 18
+  },
+  rpcUrls: ['https://rpc.ankr.com/monad_testnet'],
+  blockExplorerUrls: ['https://testnet.monadexplorer.com']
+};
 
 export class CTNFTContract {
   private contract: ethers.Contract;
@@ -168,7 +191,7 @@ export class CTNFTContract {
         rank: metadata.rank.toString(),
         score: metadata.score.toString(),
         eventName: metadata.eventName,
-        mintTimestamp: new Date(metadata.mintTimestamp.toNumber() * 1000)
+        mintTimestamp: new Date(Number(metadata.mintTimestamp.toString()) * 1000)
       };
     } catch (error) {
       console.error('Error getting NFT metadata:', error);
@@ -206,7 +229,8 @@ export class CTNFTContract {
   async getBalance(address: string): Promise<number> {
     try {
       const balance = await this.contract.balanceOf(address);
-      return balance.toNumber();
+      // Convert BigNumber to number - compatible with ethers v5 and v6
+      return Number(balance.toString());
     } catch (error) {
       console.error('Error getting NFT balance:', error);
       return 0;
@@ -218,7 +242,10 @@ export class CTNFTContract {
    */
   async getUserNFTs(userAddress: string): Promise<any[]> {
     try {
+      console.log(`Fetching NFTs for address: ${userAddress}`);
       const balance = await this.getBalance(userAddress);
+      console.log(`NFT balance for ${userAddress}: ${balance}`);
+      
       const nfts = [];
 
       // Note: This is a simple implementation
@@ -239,17 +266,20 @@ export class CTNFTContract {
             score: metadata.score.toString(),
             eventName: metadata.eventName,
             mintTimestamp: new Date(Number(metadata.mintTimestamp) * 1000),
-            tokenURI
+            tokenURI,
+            source: 'blockchain'
           });
         } catch (error) {
-          console.error(`Error fetching NFT ${i}:`, error);
+          console.warn(`Error fetching NFT ${i} for ${userAddress}:`, error);
+          // Continue with other tokens
         }
       }
 
+      console.log(`Found ${nfts.length} NFTs for ${userAddress}`);
       return nfts;
     } catch (error) {
       console.error('Error fetching user NFTs:', error);
-      return [];
+      throw error; // Re-throw so the API can handle it properly
     }
   }
 
@@ -258,11 +288,12 @@ export class CTNFTContract {
    */
   private getTierName(tierIndex: number): string {
     switch (tierIndex) {
-      case 0: return 'LEGENDARY';
-      case 1: return 'EPIC';
-      case 2: return 'RARE';
-      case 3: return 'COMMON';
-      default: return 'COMMON';
+      case 0: return 'DIAMOND';
+      case 1: return 'PLATINUM';
+      case 2: return 'GOLD';
+      case 3: return 'SILVER';
+      case 4: return 'BRONZE';
+      default: return 'BRONZE';
     }
   }
 
@@ -271,11 +302,12 @@ export class CTNFTContract {
    */
   private getTierIndex(tier: NFTTier): number {
     switch (tier) {
-      case NFTTier.COMMON: return 0;
-      case NFTTier.RARE: return 1;
-      case NFTTier.EPIC: return 2;
-      case NFTTier.LEGENDARY: return 3;
-      default: return 0;
+      case NFTTier.DIAMOND: return 0;
+      case NFTTier.PLATINUM: return 1;
+      case NFTTier.GOLD: return 2;
+      case NFTTier.SILVER: return 3;
+      case NFTTier.BRONZE: return 4;
+      default: return 4;
     }
   }
 
@@ -284,28 +316,66 @@ export class CTNFTContract {
    */
   private getTierFromIndex(index: number): NFTTier {
     switch (index) {
-      case 0: return NFTTier.COMMON;
-      case 1: return NFTTier.RARE;
-      case 2: return NFTTier.EPIC;
-      case 3: return NFTTier.LEGENDARY;
-      default: return NFTTier.COMMON;
+      case 0: return NFTTier.DIAMOND;
+      case 1: return NFTTier.PLATINUM;
+      case 2: return NFTTier.GOLD;
+      case 3: return NFTTier.SILVER;
+      case 4: return NFTTier.BRONZE;
+      default: return NFTTier.BRONZE;
     }
   }
+}
+
+/**
+ * Add Monad testnet to MetaMask
+ */
+export async function addMonadTestnetToWallet() {
+  if (typeof window !== 'undefined' && window.ethereum) {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [MONAD_TESTNET_CONFIG],
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to add Monad testnet to wallet:', error);
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Get contract addresses from deployment file
+ */
+export function getContractAddresses() {
+  return {
+    ctnft: deploymentAddresses.ctnft,
+    ctnftReward: deploymentAddresses.ctnftReward,
+    deployer: deploymentAddresses.deployer,
+    network: deploymentAddresses.network
+  };
 }
 
 /**
  * Initialize contract instance
  */
 export function initializeContract(): CTNFTContract | null {
-  const contractAddress = process.env.CTNFT_CONTRACT_ADDRESS;
-  const providerUrl = process.env.SEPOLIA_URL;
+  // Use deployment addresses from JSON file, fallback to env var
+  const contractAddress = process.env.CTNFT_CONTRACT_ADDRESS || deploymentAddresses.ctnft;
+  const providerUrl = process.env.MONAD_URL || "https://rpc.ankr.com/monad_testnet";
   const privateKey = process.env.PRIVATE_KEY;
 
   if (!contractAddress || !providerUrl || !privateKey) {
-    console.warn('Missing contract configuration');
+    console.warn('Missing contract configuration', {
+      contractAddress: !!contractAddress,
+      providerUrl: !!providerUrl,
+      privateKey: !!privateKey
+    });
     return null;
   }
 
+  console.log(`Connecting to Monad Testnet with contract: ${contractAddress}`);
   return new CTNFTContract(contractAddress, providerUrl, privateKey);
 }
 

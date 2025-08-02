@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { distributeNFTRewards } from '@/lib/nft-rewards';
 
 export async function POST(
   request: NextRequest,
@@ -87,10 +88,26 @@ export async function POST(
       }
     });
 
+    // Automatically distribute NFT rewards after ending the event
+    let nftDistributionResult = null;
+    try {
+      console.log(`Attempting to distribute NFTs for event ${eventId}...`);
+      nftDistributionResult = await distributeNFTRewards(eventId);
+      console.log(`NFT distribution result:`, nftDistributionResult);
+    } catch (nftError) {
+      console.error('Error distributing NFTs:', nftError);
+      // Don't fail the event ending if NFT distribution fails
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedEvent,
-      message: 'Event ended successfully'
+      message: 'Event ended successfully',
+      nftDistribution: nftDistributionResult || { 
+        success: false, 
+        error: 'NFT distribution failed or was skipped',
+        totalDistributed: 0 
+      }
     });
 
   } catch (error) {

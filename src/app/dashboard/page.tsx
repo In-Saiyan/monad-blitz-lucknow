@@ -4,6 +4,8 @@ import { useValidatedSession } from '@/hooks/useValidatedSession'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import UserNFTCollection from '@/components/UserNFTCollection'
+import MonadNetworkInfo from '@/components/MonadNetworkInfo'
 
 interface Event {
   id: string
@@ -419,6 +421,16 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* NFT Collection Preview */}
+          <div className="lg:col-span-2">
+            <UserNFTCollection compact={true} maxDisplay={3} />
+          </div>
+        </div>
+
+        {/* Monad Network Information */}
+        <div className="mb-8">
+          <MonadNetworkInfo />
         </div>
       </div>
     </div>

@@ -23,7 +23,7 @@ This is a Web3-enabled Capture The Flag (CTF) platform called CTNFT that rewards
 - Frontend: Next.js 15 with TypeScript and Tailwind CSS
 - Backend: Next.js API routes
 - Database: PostgreSQL with Prisma ORM
-- Blockchain: Ethereum (Sepolia testnet) with ethers.js
+- Blockchain: Monad testnet with ethers.js
 - Smart Contracts: Solidity ERC-721 NFTs
 
 ## Coding Guidelines

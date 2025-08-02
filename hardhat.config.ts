@@ -23,7 +23,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
     monadTestnet: {
-      url: "https://testnet-rpc.monad.xyz",
+      url: "https://rpc.ankr.com/monad_testnet",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 10143,
     },

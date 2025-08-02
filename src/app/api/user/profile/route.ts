@@ -70,6 +70,21 @@ export async function PUT(request: NextRequest): Promise<NextResponse<ApiRespons
       }, { status: 400 });
     }
 
+    // Check if wallet address is already in use by another user
+    if (walletAddress) {
+      const existingUser = await prisma.user.findUnique({
+        where: { walletAddress },
+        select: { id: true, username: true }
+      });
+
+      if (existingUser && existingUser.id !== session.user.id) {
+        return NextResponse.json({
+          success: false,
+          error: `This wallet address is already connected to another account (${existingUser.username})`
+        }, { status: 409 }); // 409 Conflict
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: { walletAddress: walletAddress || null },
@@ -90,8 +105,17 @@ export async function PUT(request: NextRequest): Promise<NextResponse<ApiRespons
       message: 'Profile updated successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user profile:', error);
+    
+    // Handle Prisma unique constraint violation
+    if (error.code === 'P2002' && error.meta?.target?.includes('walletAddress')) {
+      return NextResponse.json({
+        success: false,
+        error: 'This wallet address is already connected to another account'
+      }, { status: 409 });
+    }
+    
     return NextResponse.json({
       success: false,
       error: 'Internal server error'
