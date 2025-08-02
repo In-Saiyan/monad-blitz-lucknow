@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminOrganizerRequests from '@/components/AdminOrganizerRequests';
 import EventCreateForm from '@/components/EventCreateForm';
+import MatrixBackground from '@/components/ui/effects/MatrixBackground';
 
 export default function AdminDashboard() {
   const { data: session, status } = useValidatedSession();
@@ -26,90 +27,86 @@ export default function AdminDashboard() {
     }
   }, [session, status, router]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || !session || session.user?.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="relative min-h-screen bg-background flex items-center justify-center">
+        <MatrixBackground />
+        <div className="relative z-10 flex flex-col items-center gap-4 text-primary font-mono">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-accent"></div>
+          <p>Verifying Access...</p>
+        </div>
       </div>
     );
   }
 
-  if (!session || session.user?.role !== 'ADMIN') {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      {/* Navigation */}
-      <nav className="bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              CTNFT
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Dashboard
+    <div className="relative min-h-screen bg-background text-foreground">
+      <MatrixBackground />
+      <div className="relative z-10">
+        <nav className="bg-background/80 backdrop-blur-sm border-b border-primary/20 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <Link href="/" className="text-2xl font-bold font-mono text-primary hover:text-primary-focus transition-colors">
+                CTF<span className='text-accent'>NFT</span>
               </Link>
-              <Link href="/events" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                All Events
-              </Link>
-              <Link href="/profile" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Profile
-              </Link>
-              <span className="text-gray-300">Admin: {session.user?.username}</span>
-              <Link href="/api/auth/signout" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                Sign Out
-              </Link>
+              <div className="flex items-center space-x-2 md:space-x-4">
+                <Link href="/dashboard" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Dashboard
+                </Link>
+                <Link href="/profile" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Profile
+                </Link>
+                <span className="text-red-400 text-sm font-mono">Admin: {session.user?.username}</span>
+                <Link href="/api/auth/signout" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Sign Out
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-          <p className="text-gray-300">Manage organizer requests and platform settings</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-8">
-          <div className="border-b border-white/20">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('requests')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'requests'
-                    ? 'border-blue-400 text-blue-400'
-                    : 'border-transparent text-gray-300 hover:text-white hover:border-white/50'
-                }`}
-              >
-                Organizer Requests
-              </button>
-              <button
-                onClick={() => setActiveTab('create-event')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'create-event'
-                    ? 'border-blue-400 text-blue-400'
-                    : 'border-transparent text-gray-300 hover:text-white hover:border-white/50'
-                }`}
-              >
-                Create Event
-              </button>
-            </nav>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold font-mono text-primary mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Manage organizer requests and platform settings.</p>
           </div>
-        </div>
 
-        {/* Tab Content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20">
-          {activeTab === 'requests' && <AdminOrganizerRequests />}
-          {activeTab === 'create-event' && (
-            <EventCreateForm onSuccess={() => {
-              alert('Event created successfully!');
-            }} />
-          )}
-        </div>
+          <div className="mb-8">
+            <div className="border-b border-primary/20">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('requests')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'requests'
+                      ? 'border-accent text-accent'
+                      : 'border-transparent text-muted-foreground hover:text-primary hover:border-primary/50'
+                  }`}
+                >
+                  Organizer Requests
+                </button>
+                <button
+                  onClick={() => setActiveTab('create-event')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'create-event'
+                      ? 'border-accent text-accent'
+                      : 'border-transparent text-muted-foreground hover:text-primary hover:border-primary/50'
+                  }`}
+                >
+                  Create Event
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          <div className="bg-background/50 backdrop-blur-sm rounded-xl p-6 md:p-8 border border-primary/20">
+            {activeTab === 'requests' && <AdminOrganizerRequests />}
+            {activeTab === 'create-event' && (
+              <EventCreateForm onSuccess={() => {
+                alert('Event created successfully!');
+              }} />
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
