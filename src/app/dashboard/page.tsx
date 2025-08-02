@@ -1,14 +1,5 @@
 "use client"
 
-<<<<<<< HEAD
-import { useValidatedSession } from '@/hooks/useValidatedSession'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import UserNFTCollection from '@/components/UserNFTCollection'
-import MonadNetworkInfo from '@/components/MonadNetworkInfo'
-import { FaTrophy, FaCalendarCheck, FaLaptopCode, FaChartLine } from 'react-icons/fa'
-=======
 import type React from "react"
 
 import { useValidatedSession } from "@/hooks/useValidatedSession"
@@ -34,7 +25,6 @@ import {
   FaTh,
 } from "react-icons/fa"
 import { motion, AnimatePresence } from "framer-motion"
->>>>>>> 8787f02 (improved ui)
 
 // Import the themed components for a consistent look
 import MatrixBackground from "@/components/ui/effects/MatrixBackground"
@@ -209,25 +199,6 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-<<<<<<< HEAD
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard icon={<FaTrophy />} title="Total Score" value={userStats?.totalScore || 0} color="text-primary" />
-            <StatCard icon={<FaCalendarCheck />} title="Events Joined" value={participatedEvents.length} color="text-accent" />
-            <StatCard icon={<FaLaptopCode />} title="Challenges Solved" value={userStats?.challengesSolved || 0} color="text-green-400" />
-            <StatCard icon={<FaChartLine />} title="Global Rank" value={`#${userStats?.rank || 'N/A'}`} color="text-yellow-400" />
-
-          {/* NFT Collection Preview */}
-          <div className="lg:col-span-2">
-            <UserNFTCollection compact={true} maxDisplay={3} />
-          </div>
-        </div>
-
-        {/* Monad Network Information */}
-        <div className="mb-8">
-          <MonadNetworkInfo />
-        </div>
-          
-=======
           {/* Stats Cards */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -271,7 +242,6 @@ export default function Dashboard() {
           </motion.div>
 
           {/* Main Content Grid */}
->>>>>>> 8787f02 (improved ui)
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* My Missions */}
             <motion.div
