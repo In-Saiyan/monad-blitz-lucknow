@@ -63,10 +63,12 @@ export default function OrganizerDashboard() {
 
   const fetchMyEvents = async () => {
     try {
-      const response = await fetch("/api/events/my-events")
+      const response = await fetch("/api/events/organized-events")
       if (response.ok) {
         const data = await response.json()
         setEvents(data.data || [])
+      } else {
+        console.error("Failed to fetch organized events:", response.status)
       }
     } catch (error) {
       console.error("Error fetching events:", error)
@@ -210,7 +212,7 @@ export default function OrganizerDashboard() {
                 href="/"
                 className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
                 {["Events", "Profile"].map((item) => (
@@ -312,7 +314,7 @@ export default function OrganizerDashboard() {
                     </p>
                   </motion.div>
                 ) : (
-                  <div className="space-y-6 max-h-[32rem] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-6 max-h-[32rem] overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
                     <AnimatePresence>
                       {events.map((event, index) => (
                         <motion.div
@@ -320,7 +322,7 @@ export default function OrganizerDashboard() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="bg-background/70 rounded-xl p-6 border border-primary/10 hover:border-accent/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/5 hover:scale-[1.01]"
+                          className="bg-background/70 rounded-xl p-6 border border-primary/10 hover:border-accent/50 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/5"
                         >
                           <div className="flex justify-between items-start mb-4">
                             <h3 className="text-xl font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">

@@ -119,7 +119,7 @@ export default function EventLeaderboardPage({ params }: EventLeaderboardPagePro
                 href="/"
                 className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
                 {["Dashboard", "Events", "Profile"].map((item) => (

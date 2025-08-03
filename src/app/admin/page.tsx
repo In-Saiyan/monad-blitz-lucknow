@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <Link href="/" className="text-2xl font-bold font-mono text-primary hover:text-primary-focus transition-colors">
-                CTF<span className='text-accent'>NFT</span>
+                CT<span className='text-accent'>NFT</span>
               </Link>
               <div className="flex items-center space-x-2 md:space-x-4">
                 <Link href="/dashboard" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">

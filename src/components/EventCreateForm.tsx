@@ -143,21 +143,23 @@ export default function EventCreateForm({ onSuccess }: EventCreateFormProps) {
           </div>
           <div>
             <label htmlFor="joinDeadlineMinutes" className="block text-sm font-medium text-muted-foreground mb-2">
-              Join Deadline (minutes after start)
+              Join Deadline (minutes after start) <span className="text-red-400">*</span>
             </label>
             <input
               type="number"
               id="joinDeadlineMinutes"
               min="0"
-              max="60"
+              max="120"
               value={formData.joinDeadlineMinutes}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, joinDeadlineMinutes: Number.parseInt(e.target.value) || 10 }))
               }
               className="w-full px-4 py-2.5 bg-background/50 border border-primary/20 rounded-lg shadow-sm text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-accent focus:border-accent transition-all duration-200"
-              placeholder="10 (platform default)"
+              placeholder="10"
             />
-            <p className="text-xs text-muted-foreground/70 mt-2">How long after start time agents can still join</p>
+            <p className="text-xs text-muted-foreground/70 mt-2">
+              Participants can join 1 day before start until this many minutes after event begins
+            </p>
           </div>
         </div>
         <div className="grid md:grid-cols-2 gap-6">

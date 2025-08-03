@@ -140,9 +140,6 @@ export async function distributeNFTRewards(eventId: string): Promise<{
     // Create event in the contract and get the contract event ID
     let contractEventId: number;
     
-    // Clear previous mappings for testing (remove in production)
-    clearEventMappings();
-    
     // Check if we already have a mapping for this event
     const existingContractEventId = getContractEventId(eventId);
     if (existingContractEventId !== null) {
@@ -226,7 +223,7 @@ export async function distributeNFTRewards(eventId: string): Promise<{
         }
 
         // Batch mint NFTs using the contract event ID
-        await contract.batchMintRewards(
+        const tokenIds = await contract.batchMintRewards(
           recipients,
           contractEventId,
           safeRanks,
@@ -234,8 +231,11 @@ export async function distributeNFTRewards(eventId: string): Promise<{
           rankings.length
         );
 
-        // Update database records
-        for (const participant of batch) {
+        // Update database records with actual token IDs
+        for (let j = 0; j < batch.length; j++) {
+          const participant = batch[j];
+          const tokenId = tokenIds[j] || `fallback-${Date.now()}-${j}`;
+          
           await prisma.eventParticipant.update({
             where: {
               userId_eventId: {
@@ -245,7 +245,7 @@ export async function distributeNFTRewards(eventId: string): Promise<{
             },
             data: {
               hasReceivedNFT: true,
-              nftTokenId: `${contractEventId}-${participant.rank}` // Temporary token ID format
+              nftTokenId: tokenId
             }
           });
         }

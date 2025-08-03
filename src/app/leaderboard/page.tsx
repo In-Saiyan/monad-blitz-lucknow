@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import type { ApiResponse, LeaderboardEntry } from "@/types"
+import { useValidatedSession } from "@/hooks/useValidatedSession"
 import MatrixBackground from "@/components/ui/effects/MatrixBackground"
-import { FaTrophy, FaMedal, FaAward, FaCrown, FaUser, FaCalendarAlt, FaHashtag } from "react-icons/fa"
+import { FaTrophy, FaMedal, FaAward, FaCrown, FaUser, FaCalendarAlt, FaHashtag, FaUserShield, FaUserCog } from "react-icons/fa"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function LeaderboardPage() {
+  const { data: session } = useValidatedSession()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -97,7 +99,7 @@ export default function LeaderboardPage() {
                 href="/"
                 className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
                 {["Dashboard", "Events", "Profile"].map((item) => (
@@ -110,6 +112,43 @@ export default function LeaderboardPage() {
                     <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
                   </Link>
                 ))}
+                
+                {/* Role-based admin/organizer buttons */}
+                {session?.user?.role === "ADMIN" && (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="text-red-300 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10 flex items-center gap-2"
+                    >
+                      <FaUserShield className="w-4 h-4" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                    >
+                      <FaUserCog className="w-4 h-4" />
+                      <span className="hidden sm:inline">Organizer</span>
+                    </Link>
+                  </>
+                )}
+                
+                {session?.user?.role === "ORGANIZER" && (
+                  <Link
+                    href="/organizer"
+                    className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                  >
+                    <FaUserCog className="w-4 h-4" />
+                    <span className="hidden sm:inline">Organizer</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/api/auth/signout"
+                  className="text-muted-foreground hover:text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10"
+                >
+                  Sign Out
+                </Link>
               </div>
             </div>
           </div>

@@ -232,7 +232,7 @@ export default function UserNFTCollection({
                   {!compact && nft.tokenId && (
                     <div className="mt-4 pt-4 border-t border-white/10">
                       <a
-                        href={`https://testnet.monadexplorer.com/token/${process.env.NEXT_PUBLIC_CTNFT_CONTRACT_ADDRESS || nftData?.contractAddress || ''}/${nft.tokenId}`}
+                        href={`https://testnet.monadexplorer.com/token/${process.env.NEXT_PUBLIC_CTNFT_REWARD_CONTRACT_ADDRESS || nftData?.contractAddress || ''}/${nft.tokenId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-400 hover:text-blue-300 text-sm font-medium inline-flex items-center"

@@ -7,7 +7,6 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import type { ApiResponse, UserRole, NFTMetadata } from "@/types"
 import OrganizerRequestForm from "@/components/OrganizerRequestForm"
-import UserNFTCollection from "@/components/UserNFTCollection"
 import { useValidatedSession } from "@/hooks/useValidatedSession"
 import MatrixBackground from "@/components/ui/effects/MatrixBackground"
 import {
@@ -188,7 +187,7 @@ export default function Profile() {
                 href="/"
                 className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
                 {["Dashboard", "Events", "Leaderboard"].map((item) => (
@@ -201,6 +200,37 @@ export default function Profile() {
                     <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
                   </Link>
                 ))}
+                
+                {/* Role-based admin/organizer buttons */}
+                {session?.user?.role === "ADMIN" && (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="text-red-300 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10 flex items-center gap-2"
+                    >
+                      <FaUserShield className="w-4 h-4" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                    >
+                      <FaUserCog className="w-4 h-4" />
+                      <span className="hidden sm:inline">Organizer</span>
+                    </Link>
+                  </>
+                )}
+                
+                {session?.user?.role === "ORGANIZER" && (
+                  <Link
+                    href="/organizer"
+                    className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                  >
+                    <FaUserCog className="w-4 h-4" />
+                    <span className="hidden sm:inline">Organizer</span>
+                  </Link>
+                )}
+
                 <Link
                   href="/api/auth/signout"
                   className="text-muted-foreground hover:text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10"
@@ -397,8 +427,6 @@ export default function Profile() {
             )}
           </motion.div>
         </main>
-        {/* NFT Collection */}
-        <UserNFTCollection />
       </div>
 
       <style jsx>{`
@@ -512,15 +540,35 @@ const NftCard = ({ nft }: { nft: NFTMetadata }) => {
   const tier = nft.tier as keyof typeof tierStyles
   const currentTierStyle = tierStyles[tier] || tierStyles.BRONZE
 
+  // NFT Contract address from deployment
+  const NFT_CONTRACT_ADDRESS = "0x18ee5C7a2e7339705Eff8f96717C1085A4B69D27"
+  const explorerUrl = nft.tokenId 
+    ? `https://testnet.monadexplorer.com/nft/${NFT_CONTRACT_ADDRESS}/${nft.tokenId}`
+    : null
+
+  const handleNftClick = () => {
+    if (explorerUrl) {
+      window.open(explorerUrl, '_blank')
+    }
+  }
+
   return (
     <div
-      className={`bg-background/70 rounded-xl p-6 border border-primary/10 overflow-hidden shadow-lg shadow-primary/5 hover:shadow-xl ${currentTierStyle.glow} transition-all duration-300 hover:scale-[1.02] relative group`}
+      onClick={handleNftClick}
+      className={`bg-background/70 rounded-xl p-6 border border-primary/10 overflow-hidden shadow-lg shadow-primary/5 hover:shadow-xl ${currentTierStyle.glow} transition-all duration-300 hover:scale-[1.02] relative group ${explorerUrl ? 'cursor-pointer' : ''}`}
     >
       <div
         className={`w-full h-32 rounded-lg mb-4 flex items-center justify-center text-5xl bg-gradient-to-br ${currentTierStyle.gradient} ${currentTierStyle.text} relative overflow-hidden`}
       >
         {currentTierStyle.icon}
         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 mix-blend-overlay"></div>
+        {explorerUrl && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="bg-background/80 backdrop-blur-sm rounded-lg p-2">
+              <FaFire className="w-4 h-4 text-accent" />
+            </div>
+          </div>
+        )}
       </div>
       <h3 className="text-xl font-bold text-foreground mb-2 truncate">{nft.eventName}</h3>
       <div
@@ -541,6 +589,17 @@ const NftCard = ({ nft }: { nft: NFTMetadata }) => {
           <FaCalendarCheck className="w-3 h-3 text-muted-foreground/70" /> Minted:{" "}
           <span className="text-foreground/80 font-mono">{new Date(nft.mintTimestamp).toLocaleDateString()}</span>
         </p>
+        {nft.tokenId && (
+          <p className="text-muted-foreground text-xs flex items-center gap-2">
+            <FaCube className="w-3 h-3 text-accent" /> Token ID:{" "}
+            <span className="text-accent font-mono font-bold">#{nft.tokenId}</span>
+          </p>
+        )}
+        {explorerUrl && (
+          <p className="text-muted-foreground text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            Click to view on Monad Explorer →
+          </p>
+        )}
       </div>
     </div>
   )

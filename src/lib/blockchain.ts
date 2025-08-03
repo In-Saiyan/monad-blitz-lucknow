@@ -190,7 +190,7 @@ export class CTNFTContract {
     ranks: number[],
     scores: number[],
     totalParticipants: number
-  ): Promise<void> {
+  ): Promise<string[]> {
     try {
       // Validate all inputs
       if (!Array.isArray(recipients) || recipients.length === 0) {
@@ -245,7 +245,21 @@ export class CTNFTContract {
         safeScores,
         safeTotalParticipants
       );
-      await tx.wait();
+      const receipt = await tx.wait();
+
+      // Extract token IDs from NFTMinted events
+      const tokenIds: string[] = [];
+      const nftMintedLogs = receipt.logs.filter((log: any) => 
+        log.topics[0] === ethers.id("NFTMinted(address,uint256,uint256,uint8,uint256,uint256)")
+      );
+
+      for (const log of nftMintedLogs) {
+        const tokenId = parseInt(log.topics[2], 16);
+        tokenIds.push(tokenId.toString());
+      }
+
+      console.log(`✅ Batch minted ${tokenIds.length} NFTs with token IDs: ${tokenIds.join(', ')}`);
+      return tokenIds;
     } catch (error) {
       console.error('Error batch minting NFTs:', error);
       throw error;

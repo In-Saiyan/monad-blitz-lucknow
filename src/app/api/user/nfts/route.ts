@@ -71,64 +71,48 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     }));
     
     if (!contract) {
-      // Return database NFTs + some mock data for demo when blockchain is not configured
-      const mockNFTs = [
-        {
-          tokenId: 'demo-1',
-          eventId: 'demo-event-1',
-          tier: 'GOLD',
-          rank: 2,
-          score: 1250,
-          eventName: 'Demo Web3 Security CTF',
-          mintTimestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          walletAddress: user.walletAddress,
-          source: 'demo'
-        }
-      ];
-
-      const allNFTs = [...dbNFTs, ...mockNFTs];
-
+      // Only return database NFTs if blockchain is not configured
       return NextResponse.json({
         success: true,
         data: {
           blockchainConnected: false,
           message: dbNFTs.length > 0 
-            ? `Found ${dbNFTs.length} NFTs from database. Blockchain demo mode active.`
+            ? `Found ${dbNFTs.length} NFTs from database. Blockchain connection unavailable.`
             : 'No NFTs found. Please participate in events to earn NFT rewards!',
-          contractAddress: process.env.CTNFT_CONTRACT_ADDRESS || 'Not deployed',
-          nftsEarned: allNFTs,
-          totalNFTs: allNFTs.length,
+          contractAddress: process.env.CTNFT_REWARD_CONTRACT_ADDRESS || 'Not configured',
+          nftsEarned: dbNFTs,
+          totalNFTs: dbNFTs.length,
           databaseNFTs: dbNFTs.length,
           configStatus: {
             providerUrl: process.env.MONAD_URL ? 'Configured' : 'Missing MONAD_URL',
             privateKey: process.env.PRIVATE_KEY ? 'Configured' : 'Missing PRIVATE_KEY',
-            contractAddress: process.env.CTNFT_CONTRACT_ADDRESS ? 'Configured' : 'Missing CTNFT_CONTRACT_ADDRESS'
+            contractAddress: process.env.CTNFT_REWARD_CONTRACT_ADDRESS ? 'Configured' : 'Missing CTNFT_REWARD_CONTRACT_ADDRESS'
           }
         }
       });
     }
 
     try {
-      // Get user's actual NFTs from the blockchain
-      const blockchainNFTs = await contract.getUserNFTs(user.walletAddress);
-      
-      // Combine database and blockchain NFTs
-      const allNFTs = [...dbNFTs, ...blockchainNFTs];
+      // For now, only return database NFTs that are confirmed as distributed
+      // Blockchain querying is complex without tokenOfOwnerByIndex implementation
+      console.log(`Returning ${dbNFTs.length} confirmed NFTs from database for user ${user.walletAddress}`);
       
       return NextResponse.json({
         success: true,
         data: {
           blockchainConnected: true,
-          contractAddress: process.env.CTNFT_CONTRACT_ADDRESS,
-          nftsEarned: allNFTs,
-          totalNFTs: allNFTs.length,
+          message: dbNFTs.length > 0 
+            ? `Found ${dbNFTs.length} confirmed NFT${dbNFTs.length > 1 ? 's' : ''}.`
+            : 'No NFTs found. Participate in events to earn NFT rewards!',
+          contractAddress: process.env.CTNFT_REWARD_CONTRACT_ADDRESS,
+          nftsEarned: dbNFTs,
+          totalNFTs: dbNFTs.length,
           databaseNFTs: dbNFTs.length,
-          blockchainNFTs: blockchainNFTs.length,
           walletAddress: user.walletAddress
         }
       });
     } catch (blockchainError) {
-      console.error('Blockchain query failed:', blockchainError);
+      console.error('Blockchain initialization failed:', blockchainError);
       
       // Return only database NFTs if blockchain fails
       return NextResponse.json({
@@ -139,7 +123,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
             ? `Found ${dbNFTs.length} NFTs from database. Blockchain query failed.`
             : 'No NFTs found in database and blockchain query failed.',
           walletAddress: user.walletAddress,
-          contractAddress: process.env.CTNFT_CONTRACT_ADDRESS,
+          contractAddress: process.env.CTNFT_REWARD_CONTRACT_ADDRESS,
           nftsEarned: dbNFTs,
           totalNFTs: dbNFTs.length,
           databaseNFTs: dbNFTs.length,

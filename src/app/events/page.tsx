@@ -167,10 +167,10 @@ export default function AllEventsPage() {
                 href="/"
                 className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
-                {["Dashboard", "Profile"].map((item) => (
+                {["Dashboard", "Leaderboard", "Profile"].map((item) => (
                   <Link
                     key={item}
                     href={`/${item.toLowerCase()}`}
@@ -180,6 +180,37 @@ export default function AllEventsPage() {
                     <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
                   </Link>
                 ))}
+                
+                {/* Role-based admin/organizer buttons */}
+                {session?.user?.role === "ADMIN" && (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="text-red-300 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10 flex items-center gap-2"
+                    >
+                      <FaUserShield className="w-4 h-4" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                    >
+                      <FaUserCog className="w-4 h-4" />
+                      <span className="hidden sm:inline">Organizer</span>
+                    </Link>
+                  </>
+                )}
+                
+                {session?.user?.role === "ORGANIZER" && (
+                  <Link
+                    href="/organizer"
+                    className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                  >
+                    <FaUserCog className="w-4 h-4" />
+                    <span className="hidden sm:inline">Organizer</span>
+                  </Link>
+                )}
+
                 <Link
                   href="/api/auth/signout"
                   className="text-muted-foreground hover:text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10"

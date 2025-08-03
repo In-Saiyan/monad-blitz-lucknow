@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { ApiResponse } from '@/types';
+import { determineNFTTier } from '@/lib/scoring';
+import { ApiResponse, NFTMetadata, NFTTier } from '@/types';
 
 interface UserStats {
   totalEvents: number;
   totalSolves: number;
   totalPoints: number;
   rank: number;
-  nftsEarned: number;
+  nftsEarned: NFTMetadata[];
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<UserStats>>> {
@@ -59,8 +60,37 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     // In a real implementation, you'd want to aggregate points properly
     const rank = usersWithHigherPoints + 1;
 
-    // For now, NFTs earned is 0 since we haven't implemented the minting logic yet
-    const nftsEarned = 0;
+    // Get user's NFTs from EventParticipant records
+    const userNFTs = await prisma.eventParticipant.findMany({
+      where: { 
+        userId: userId,
+        hasReceivedNFT: true,
+        nftTokenId: {
+          not: null
+        }
+      },
+      include: {
+        event: true
+      },
+      orderBy: { joinedAt: 'desc' }
+    });
+
+    // Transform NFT data to match NFTMetadata interface
+    const nftsEarned: NFTMetadata[] = userNFTs.map((participant) => {
+      // Count participants in this event to determine tier
+      const participantCount = userNFTs.filter(p => p.eventId === participant.eventId).length;
+      const tier = determineNFTTier(participant.rank || 1, participantCount) as NFTTier;
+      return {
+        tokenId: participant.nftTokenId!,
+        eventId: participant.eventId,
+        tier: tier,
+        rank: participant.rank || 1,
+        score: participant.totalScore,
+        eventName: participant.event.name,
+        mintTimestamp: participant.joinedAt,
+        walletAddress: userId // We'd need actual wallet address from user
+      };
+    });
 
     const stats: UserStats = {
       totalEvents,

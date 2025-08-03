@@ -60,20 +60,34 @@ export async function POST(
     // Check time restrictions
     const now = new Date();
     const eventStartTime = new Date(event.startTime);
+    const eventEndTime = new Date(event.endTime);
+    
+    // Calculate join deadline: 1 day (24 hours) before event start
+    const joinWindowStart = new Date(eventStartTime.getTime() - (24 * 60 * 60 * 1000)); // 24 hours before start
+    
+    // Calculate join deadline: X minutes after event start (configurable by organizer)
     const joinDeadlineMinutes = event.joinDeadlineMinutes || 10;
     const joinDeadline = new Date(eventStartTime.getTime() + (joinDeadlineMinutes * 60 * 1000));
-
-    // Allow joining before the event starts
-    if (now < eventStartTime) {
-      // Event hasn't started yet, joining is allowed
-    } else if (now > joinDeadline) {
-      // Event has started and join deadline has passed
+    
+    // Check if current time is before the join window opens
+    if (now < joinWindowStart) {
       return NextResponse.json({
         success: false,
-        error: `Join deadline has passed. You can only join within ${joinDeadlineMinutes} minutes of the event start time.`
+        error: `You can only join starting from ${joinWindowStart.toLocaleString()} (1 day before event starts)`
       }, { status: 400 });
     }
-    // If now is between start time and deadline, joining is still allowed
+    
+    // Check if join deadline has passed
+    if (now > joinDeadline) {
+      return NextResponse.json({
+        success: false,
+        error: `Join deadline has passed. You could join until ${joinDeadline.toLocaleString()} (${joinDeadlineMinutes} minutes after start).`
+      }, { status: 400 });
+    }
+    
+    // If we're here, it means:
+    // joinWindowStart <= now <= joinDeadline
+    // This is the valid joining window (1 day before start until X minutes after start)
 
     // Check if user is the organizer of this event
     if (event.organizerId === userId) {

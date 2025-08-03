@@ -23,6 +23,9 @@ import {
   FaCheckCircle,
   FaEye,
   FaTh,
+  FaUserShield,
+  FaUserCog,
+  FaUser,
 } from "react-icons/fa"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -77,13 +80,17 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [availableRes, participatedRes, statsRes] = await Promise.all([
-          fetch("/api/events"), // Fetches available (active/upcoming, un-joined) events
+          fetch("/api/events/my-events"), // Fetches events I'm participating in (active ones only)
           fetch("/api/events/my-events"), // Fetches participated events
           fetch("/api/user/stats"),
         ])
 
         const availableData = await availableRes.json()
-        setAvailableEvents(availableData.events || [])
+        // Filter for only active events (events that are currently running)
+        const activeEvents = (availableData.events || []).filter((event: any) => {
+          return event.status === "ACTIVE"
+        })
+        setAvailableEvents(activeEvents)
 
         const participatedData = await participatedRes.json()
         setParticipatedEvents(participatedData.events || [])
@@ -141,7 +148,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
       <MatrixBackground />
       <TerminalPrompt />
       <div className="relative z-10">
@@ -151,12 +158,12 @@ export default function Dashboard() {
             <div className="flex justify-between items-center h-16">
               <Link
                 href="/"
-                className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300 hover:scale-105"
+                className="text-2xl font-bold font-mono text-primary hover:text-accent transition-all duration-300"
               >
-                CTF<span className="text-accent">NFT</span>
+                CT<span className="text-accent">NFT</span>
               </Link>
               <div className="flex items-center space-x-1 md:space-x-2">
-                {["Events", "Leaderboard"].map((item) => (
+                {["Events", "Leaderboard", "Profile"].map((item) => (
                   <Link
                     key={item}
                     href={`/${item.toLowerCase()}`}
@@ -166,6 +173,37 @@ export default function Dashboard() {
                     <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
                   </Link>
                 ))}
+                
+                {/* Role-based admin/organizer buttons */}
+                {session?.user?.role === "ADMIN" && (
+                  <>
+                    <Link
+                      href="/admin"
+                      className="text-red-300 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10 flex items-center gap-2"
+                    >
+                      <FaUserShield className="w-4 h-4" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                    >
+                      <FaUserCog className="w-4 h-4" />
+                      <span className="hidden sm:inline">Organizer</span>
+                    </Link>
+                  </>
+                )}
+                
+                {session?.user?.role === "ORGANIZER" && (
+                  <Link
+                    href="/organizer"
+                    className="text-purple-300 hover:text-purple-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-purple-500/10 flex items-center gap-2"
+                  >
+                    <FaUserCog className="w-4 h-4" />
+                    <span className="hidden sm:inline">Organizer</span>
+                  </Link>
+                )}
+
                 <Link
                   href="/api/auth/signout"
                   className="text-muted-foreground hover:text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-red-500/10"
@@ -281,7 +319,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            {/* Available Missions */}
+            {/* Active Missions */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -293,7 +331,7 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-primary/20">
                     <FaThLarge className="w-6 h-6 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold font-mono text-primary">Available Missions</h2>
+                  <h2 className="text-2xl font-bold font-mono text-primary">Active Missions</h2>
                 </div>
                 <Link
                   href="/events"
@@ -318,8 +356,8 @@ export default function Dashboard() {
                   ) : (
                     <EmptyState
                       icon={<FaEye className="w-12 h-12" />}
-                      message="No new missions available."
-                      description="Check back later for new cyber warfare operations."
+                      message="No active missions."
+                      description="Join an event to start your cyber warfare operations."
                     />
                   )}
                 </AnimatePresence>
@@ -371,7 +409,7 @@ const StatCard = ({
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ delay }}
-    className={`bg-gradient-to-br ${bgColor} backdrop-blur-sm rounded-xl p-6 border hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-105`}
+    className={`bg-gradient-to-br ${bgColor} backdrop-blur-sm rounded-xl p-6 border hover:shadow-lg hover:shadow-primary/10 transition-all duration-300`}
   >
     <div className="flex items-center justify-between mb-4">
       <div className="p-3 bg-background/20 rounded-lg text-2xl">{icon}</div>
@@ -477,7 +515,7 @@ const EventCard = ({ event, type }: { event: any; type: "participated" | "availa
   if (type === "available") {
     return (
       <Link href={`/events/${event.id}`} className="block group">
-        <div className="bg-background/80 backdrop-blur-sm rounded-xl p-6 border border-primary/10 group-hover:border-accent/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:scale-[1.02]">
+        <div className="bg-background/80 backdrop-blur-sm rounded-xl p-6 border border-primary/10 group-hover:border-accent/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/5">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-lg font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">
               {event.title}
@@ -526,7 +564,7 @@ const EmptyState = ({
     {action && (
       <Link
         href={action.href}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-background font-bold rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 hover:scale-105"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-accent text-background font-bold rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
       >
         <FaRocket className="w-4 h-4" />
         {action.text}

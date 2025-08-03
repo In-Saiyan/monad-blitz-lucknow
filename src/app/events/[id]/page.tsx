@@ -31,6 +31,7 @@ interface Event {
   isActive: boolean;
   status: 'UPCOMING' | 'ACTIVE' | 'ENDED';
   participantCount: number;
+  joinDeadlineMinutes?: number;
   organizer: {
     username: string;
     email: string;
@@ -107,14 +108,44 @@ export default function EventPage() {
         fetchEvent();
         alert('Successfully joined the event!');
       } else {
-        const errorText = await response.text();
-        alert(errorText || 'Failed to join event');
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to join event');
       }
     } catch (err) {
       console.error('Error joining event:', err);
       alert('Failed to join event');
     } finally {
       setJoining(false);
+    }
+  };
+
+  // Helper function to determine join window status
+  const getJoinWindowStatus = () => {
+    if (!event) return { canJoin: false, message: '' };
+    
+    const now = new Date();
+    const eventStartTime = new Date(event.startTime);
+    const joinWindowStart = new Date(eventStartTime.getTime() - (24 * 60 * 60 * 1000)); // 24 hours before
+    const joinDeadlineMinutes = event.joinDeadlineMinutes || 10;
+    const joinDeadline = new Date(eventStartTime.getTime() + (joinDeadlineMinutes * 60 * 1000)); // X minutes after start
+    
+    if (now < joinWindowStart) {
+      return { 
+        canJoin: false, 
+        message: `Join window opens on ${joinWindowStart.toLocaleString()} (1 day before start)` 
+      };
+    } else if (now > joinDeadline) {
+      return { 
+        canJoin: false, 
+        message: `Join window closed on ${joinDeadline.toLocaleString()} (${joinDeadlineMinutes} minutes after start)` 
+      };
+    } else {
+      return { 
+        canJoin: true, 
+        message: now < eventStartTime 
+          ? `Join window open until ${joinDeadline.toLocaleString()} (${joinDeadlineMinutes} minutes after start)`
+          : `Join window closes at ${joinDeadline.toLocaleString()} (${Math.ceil((joinDeadline.getTime() - now.getTime()) / (1000 * 60))} minutes remaining)`
+      };
     }
   };
 
@@ -297,31 +328,59 @@ export default function EventPage() {
               )}
               {session && session.user?.email !== event.organizer?.email && (
                 <>
-                  {event.status === 'UPCOMING' && (
-                    <div className="bg-blue-500/20 border border-blue-500/30 text-blue-300 px-6 py-3 rounded-lg font-medium">
-                      Event Not Started Yet
-                    </div>
-                  )}
-                  {event.status === 'ACTIVE' && !hasJoined && (
-                    <button onClick={handleJoinEvent} disabled={joining} className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-lg font-bold transition-all transform hover:scale-105 disabled:transform-none disabled:bg-primary/50">
-                      {joining ? 'Joining...' : 'Join Competition'}
-                    </button>
-                  )}
-                  {event.status === 'ACTIVE' && hasJoined && (
-                    <div className="flex gap-3">
-                      <div className="bg-green-500/20 border border-green-500/30 text-green-300 px-4 py-3 rounded-lg font-medium flex items-center">
-                        Participating
-                      </div>
-                      <Link href={`/events/${event.id}/challenges-participant`} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
-                        Solve Challenges
-                      </Link>
-                    </div>
-                  )}
-                  {event.status === 'ENDED' && (
-                    <div className="bg-gray-500/20 border border-gray-500/30 text-gray-300 px-6 py-3 rounded-lg font-medium">
-                      {hasJoined ? 'You Participated' : 'Competition Ended'}
-                    </div>
-                  )}
+                  {(() => {
+                    const joinStatus = getJoinWindowStatus();
+                    
+                    if (hasJoined) {
+                      if (event.status === 'ACTIVE') {
+                        return (
+                          <div className="flex gap-3">
+                            <div className="bg-green-500/20 border border-green-500/30 text-green-300 px-4 py-3 rounded-lg font-medium flex items-center">
+                              Participating
+                            </div>
+                            <Link href={`/events/${event.id}/challenges-participant`} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
+                              Solve Challenges
+                            </Link>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="bg-green-500/20 border border-green-500/30 text-green-300 px-6 py-3 rounded-lg font-medium">
+                            You are registered
+                          </div>
+                        );
+                      }
+                    }
+                    
+                    if (joinStatus.canJoin) {
+                      return (
+                        <div className="space-y-3">
+                          <button 
+                            onClick={handleJoinEvent} 
+                            disabled={joining} 
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-lg font-bold transition-all transform hover:scale-105 disabled:transform-none disabled:bg-primary/50 w-full"
+                          >
+                            {joining ? 'Joining...' : 'Join Competition'}
+                          </button>
+                          <div className="text-xs text-green-400 text-center">
+                            ✓ {joinStatus.message}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="space-y-2">
+                          <div className="bg-blue-500/20 border border-blue-500/30 text-blue-300 px-6 py-3 rounded-lg font-medium text-center">
+                            {event.status === 'UPCOMING' ? 'Join Window Not Open Yet' : 
+                             event.status === 'ENDED' ? 'Competition Ended' : 'Join Window Closed'}
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center">
+                            {joinStatus.message}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </>
               )}
               {!session && (
@@ -366,41 +425,62 @@ export default function EventPage() {
               
               {event.challenges && event.challenges.length > 0 ? (
                 <div className="space-y-4">
-                  {event.challenges.map((challenge) => (
-                    <div key={challenge.id} className="bg-background/70 rounded-lg p-4 border border-primary/10 hover:border-accent transition-colors">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold text-foreground">{challenge.title}</h3>
-                            {challenge.solved && (
-                              <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded-full text-xs font-medium border border-green-500/50">
-                                Solved {challenge.pointsAwarded && `(+${challenge.pointsAwarded} pts)`}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-4 mb-3">
-                            <span className={`text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>{challenge.difficulty}</span>
-                            <span className="text-primary font-bold">{challenge.initialPoints} pts</span>
-                            <span className="text-xs bg-primary/20 text-accent px-2 py-1 rounded">{challenge.category}</span>
-                          </div>
-                        </div>
+                  {event.status === 'UPCOMING' ? (
+                    // Event hasn't started - hide challenge content
+                    <div className="text-center py-12">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-accent/20 flex items-center justify-center border border-blue-500/30">
+                        <FaClock className="w-10 h-10 text-blue-400" />
                       </div>
-                      <LinkifiedText text={challenge.description} className="text-muted-foreground text-sm mb-3" />
-                      {challenge.fileUrl && (
-                        <div className="mb-3">
-                          <span className="inline-flex items-center text-accent text-sm">
-                            <FaFileDownload className="w-4 h-4 mr-1" /> Attachment Available
-                          </span>
+                      <h3 className="text-xl font-bold text-foreground mb-3">Challenge Details Coming Soon</h3>
+                      <p className="text-muted-foreground text-lg max-w-md mx-auto mb-4">
+                        Challenge descriptions and content will be revealed when the event starts.
+                      </p>
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 max-w-sm mx-auto">
+                        <p className="text-blue-300 text-sm">
+                          <strong>{event.challenges.length}</strong> challenges are ready and waiting!
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    // Event has started - show challenge content
+                    <>
+                      {event.challenges.map((challenge) => (
+                        <div key={challenge.id} className="bg-background/70 rounded-lg p-4 border border-primary/10 hover:border-accent transition-colors">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <h3 className="text-lg font-semibold text-foreground">{challenge.title}</h3>
+                                {challenge.solved && (
+                                  <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded-full text-xs font-medium border border-green-500/50">
+                                    Solved {challenge.pointsAwarded && `(+${challenge.pointsAwarded} pts)`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-4 mb-3">
+                                <span className={`text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>{challenge.difficulty}</span>
+                                <span className="text-primary font-bold">{challenge.initialPoints} pts</span>
+                                <span className="text-xs bg-primary/20 text-accent px-2 py-1 rounded">{challenge.category}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <LinkifiedText text={challenge.description} className="text-muted-foreground text-sm mb-3" />
+                          {challenge.fileUrl && (
+                            <div className="mb-3">
+                              <span className="inline-flex items-center text-accent text-sm">
+                                <FaFileDownload className="w-4 h-4 mr-1" /> Attachment Available
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {hasJoined && event.status === 'ACTIVE' && (
+                        <div className="text-center pt-4">
+                          <Link href={`/events/${event.id}/challenges-participant`} className="inline-flex items-center bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
+                            Start Solving
+                          </Link>
                         </div>
                       )}
-                    </div>
-                  ))}
-                  {hasJoined && event.status === 'ACTIVE' && (
-                    <div className="text-center pt-4">
-                      <Link href={`/events/${event.id}/challenges-participant`} className="inline-flex items-center bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
-                        Start Solving
-                      </Link>
-                    </div>
+                    </>
                   )}
                 </div>
               ) : (
